@@ -1,0 +1,39 @@
+\begin{table}[htbp!]
+\centering
+\begin{threeparttable}
+\caption{Descriptive Statistics of the Final Analyzed Dataset (N=\num{14465})}
+\label{tab:comprehensive_stats}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}S[table-format=3.2]S[table-format=3.2]S[table-format=4.2]S[table-format=3.2]S[table-format=6.2]S[table-format=3.2]S[table-format=3.2]S[table-format=2.2]}
+\toprule
+\sbf{Metric} & \sbf{Mean} & \sbf{Median} & \sbf{SD} & \sbf{Min} & \sbf{Max} & \sbf{Q1} & \sbf{Q3} & \sbf{IQR\%} \\
+\dmidrule
+\multicolumn{9}{l}{\sit{SERP Position}} \\
+Overall & 10.15 & 10.00 & 5.67 & 1.00 & 20.00 & 5.00 & 15.00 & 0.00 \\
+\midrule
+\multicolumn{9}{l}{\sit{Lighthouse Scores}} \\
+Perf. & 87.83 & 95.00 & 15.04 & 12.00 & 100.00 & 82.00 & 99.00 & 5.45 \\
+Access. & 87.36 & 90.00 & 8.45 & 34.00 & 100.00 & 83.00 & 94.00 & 2.96 \\
+Best Prac. & 91.75 & 96.00 & 12.09 & 37.00 & 100.00 & 85.00 & 100.00 & 4.14 \\
+SEO & 93.00 & 92.00 & 7.43 & 40.00 & 100.00 & 92.00 & 100.00 & 3.21 \\
+\midrule
+\multicolumn{9}{l}{\sit{Content Relevance Metrics}} \\
+Q-Title & 0.41 & 0.00 & 0.49 & 0.00 & 1.00 & 0.00 & 1.00 & 0.00 \\
+Q-H1 & 0.38 & 0.00 & 0.49 & 0.00 & 1.00 & 0.00 & 1.00 & 0.00 \\
+ExQ-Title & 0.17 & 0.00 & 0.37 & 0.00 & 1.00 & 0.00 & 0.00 & 16.63 \\
+ExQ-H1 & 0.15 & 0.00 & 0.36 & 0.00 & 1.00 & 0.00 & 0.00 & 14.88 \\
+Q/B Density & 0.19 & 0.00 & 0.46 & 0.00 & 7.73 & 0.00 & 0.20 & 12.09 \\
+Sim. Title & 0.68 & 0.76 & 0.22 & -0.02 & 1.00 & 0.65 & 0.81 & 12.22 \\
+Sim. Content & 0.58 & 0.62 & 0.18 & -0.04 & 0.88 & 0.49 & 0.72 & 2.24 \\
+Word Count & 628.56 & 428.00 & 1294.32 & 0.00 & 132115.00 & 168.00 & 795.00 & 6.24 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}[flushleft]
+\scriptsize
+\item Note: SD = Standard Deviation; Q1 = First Quartile; Q3 = Third Quartile. IQR\% indicates percentage of outliers via IQR method.
+\item Metric abbreviations are defined in Table \ref{tab:dataset_columns_types}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

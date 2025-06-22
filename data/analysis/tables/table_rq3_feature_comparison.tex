@@ -1,0 +1,38 @@
+\begin{table}[htbp!]
+\centering
+\caption{Comparison of Median Feature Values for Top-Ranking (1-5) Pages between Google and Bing (RQ3)}
+\label{tab:rq3_feature_comparison}
+\small 
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1}
+\begin{threeparttable}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=3.1] S[table-format=3.1] S[table-format=1.3,table-comparator=true,table-space-text-post={***}] S[table-format=-1.3,table-space-text-post={***}]}
+\toprule
+\sbf{Feature} & {\sbf{Median Google}} & {\sbf{Median Bing}} & {\sbf{p-value}} & {\sbf{Cohen's d}} \\
+\dmidrule
+\multicolumn{5}{@{}l}{\sit{Lighthouse Scores (0-100)}} \\
+Perf. & 90.0 & 92.0 & 0.002** & -0.198 \\
+Access. & 91.0 & 91.0 & < .001*** & -0.297 \\
+Best Prac. & 96.0 & 96.0 & < .001*** & 0.029 \\
+SEO & 92.0 & 92.0 & < .001*** & -0.515 \\
+\midrule
+\multicolumn{5}{@{}l}{\sit{Content Relevance Metrics}} \\
+Q-Title \tnote{a} & 0.0 & 0.0 & < .001*** & -0.270 \\
+Q-H1 \tnote{a} & 0.0 & 0.0 & < .001*** & -0.179 \\
+ExQ-Title \tnote{a} & 0.0 & 0.0 & < .001*** & -0.139 \\
+ExQ-H1 \tnote{a} & 0.0 & 0.0 & < .001*** & -0.163 \\
+Q/B Density (\%) & 0.0 & 0.0 & < .001*** & -0.185 \\
+Sim. Title (0-1) & 0.8 & 0.8 & < .001*** & -0.570 \\
+Sim. Content (0-1) & 0.6 & 0.7 & < .001*** & -0.365 \\
+Word Count  & 567.0 & 630.0 & < .001*** & -0.302 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}[flushleft]
+\scriptsize
+\item Mann-Whitney U test used. p-values: * $p < .05$; ** $p < .01$; *** $p < .001$.
+\item Cohen's d: negligible ($|d| < 0.2$), small ($0.2 \le |d| < 0.5$), medium ($0.5 \le |d| < 0.8$).
+\item[a] For binary features, medians are shown; mean percentages discussed in text.
+\item Metric abbreviations are defined in Table \ref{tab:dataset_columns_types}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

@@ -1,0 +1,39 @@
+\begin{table}[htbp!]
+\centering
+\caption{Kruskal-Wallis H-Test Results for Features Across Ranking Tiers (High, Medium, Low) for Google and Bing (RQ2)}
+\label{tab:rq2_kruskal_wallis_ranks}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1}
+\begin{threeparttable}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}S[table-format=3.3] S[table-format=1.3,table-comparator=true] S[table-format=3.3] S[table-format=1.3,table-comparator=true]}
+\toprule
+& \multicolumn{2}{c}{\sbf{Google (System A)}} & \multicolumn{2}{c}{\sbf{Bing (System B)}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\sbf{Feature} & {\sbf{H-statistic}} & {\sbf{p-value}} & {\sbf{H-statistic}} & {\sbf{p-value}} \\
+\dmidrule
+\sit{Lighthouse Scores} & & & & \\
+Perf. & 35.896 & < .001 & 86.829 & < .001 \\
+Access. & 29.247 & < .001 & 359.950 & < .001 \\
+Best Prac. & 27.224 & < .001 & 1.773 & 0.412 \\
+SEO & 102.804 & < .001 & 32.794 & < .001 \\
+\midrule
+\sit{Content Relevance Metrics} & & & & \\
+Q-Title & 79.726 & < .001 & 21.592 & < .001 \\
+Q-H1 & 109.376 & < .001 & 23.123 & < .001 \\
+ExQ-Title & 45.916 & < .001 & 12.440 & 0.002 \\
+ExQ-H1 & 43.171 & < .001 & 33.618 & < .001 \\
+Q/B Density & 91.336 & < .001 & 127.544 & < .001 \\
+Sim. Title & 207.318 & < .001 & 89.876 & < .001 \\
+Sim. Content & 242.241 & < .001 & 9.394 & 0.009 \\
+Word Count & 30.762 & < .001 & 595.954 & < .001 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}[flushleft]
+\scriptsize
+\item Ranking Tiers: High (1-5), Medium (6-10), Low (11-20).
+\item Dunn's test for post-hoc comparisons not shown here.
+\item Metric abbreviations are defined in Table \ref{tab:dataset_columns_types}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

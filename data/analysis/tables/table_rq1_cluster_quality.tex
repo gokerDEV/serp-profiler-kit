@@ -1,0 +1,28 @@
+\begin{table}[htbp!]
+\centering
+\caption{Identified Cluster Quality and Cohesion Metrics (RQ1)}
+\label{tab:cluster_quality}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1}
+\begin{threeparttable}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=4.0] S[table-format=2.1] S[table-format=1.3] S[table-format=6.1]}
+\toprule
+\sbf{Cluster Profile} & {\sbf{Cluster Size (N)}} & {\sbf{Percentage (\%)}} & {\sbf{Mean Silhouette Score}} & {\sbf{WCSS}} \\
+\dmidrule
+C0: Balanced Profile & 1054 & 7.3 & 0.493 & 484.8 \\
+C1: Low Relevance & 5142 & 35.5 & 0.451 & 532.5 \\
+C2: Content Focused & 2122 & 14.7 & 0.544 & 439.2 \\
+C3: Low Relevance \& Poor Technicals & 2314 & 16.0 & 0.222 & 569.7 \\
+C4: High Relevance & 1522 & 10.5 & 0.444 & 485.6 \\
+C5: Technical Excellence & 2311 & 16.0 & 0.521 & 252.9 \\
+\midrule
+\sbf{Overall / Average} & \sbf{14465} & \sbf{100.0} & \sbf{0.442} & \sbf{2764.5} \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}[flushleft]
+\scriptsize
+\item Note: Higher Silhouette scores indicate better-defined clusters. Lower WCSS indicates tighter clusters. Cluster sizes are from Table \ref{tab:rq1_cluster_summary}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

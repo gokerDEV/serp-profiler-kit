@@ -1,0 +1,36 @@
+\begin{table}[htbp!]
+\centering
+\begin{threeparttable}
+\caption{Dataset Column Types and Descriptions}
+\label{tab:dataset_columns_types}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}lll}
+\toprule
+\sbf{Category} & \sbf{Column Name} & \sbf{Type} & \sbf{Description (Metric)} \\
+\dmidrule
+Search Engine & engine & Categorical (google/bing) & Search Engine \\
+Search Engine & position & Integer (1-20) & SERP Position \\
+\midrule
+Lighthouse & performance\_score & Float (0-100) & Perf. \\
+Lighthouse & accessibility\_score & Float (0-100) & Access. \\
+Lighthouse & best-practices\_score & Float (0-100) & Best Prac. \\
+Lighthouse & seo\_score & Float (0-100) & SEO \\
+\midrule
+Content & query\_in\_title & Integer (0/1) & Q-Title \\
+Content & query\_in\_h1 & Integer (0/1) & Q-H1 \\
+Content & exact\_query\_in\_title & Integer (0/1) & ExQ-Title \\
+Content & exact\_query\_in\_h1 & Integer (0/1) & ExQ-H1 \\
+Content & query\_density\_body & Float (\%) & Q/B Density \\
+Content & semantic\_similarity\_title\_query & Float (0-1, Cosine) & Sim. Title \\
+Content & semantic\_similarity\_content\_query & Float (0-1, Cosine) & Sim. Content \\
+Content & word\_count & Integer & Word Count \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}[flushleft]
+\scriptsize
+\item Metric abbreviations: Perf. (Performance Score), Access. (Accessibility Score), Best Prac. (Best Practices Score), SEO (SEO Score), Q-Title (Query in Title), Q-H1 (Query in H1), ExQ-Title (Exact Query in Title), ExQ-H1 (Exact Query in H1), Q/B Density (Query Density Body), Sim. Title (Semantic Similarity Title-Query), Sim. Content (Semantic Similarity Content-Query).
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
