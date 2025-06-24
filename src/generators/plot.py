@@ -521,7 +521,7 @@ class PlotGenerator:
             cluster_labels = sorted(set(google_data.columns) | set(bing_data.columns))
             
             # Create a single figure
-            fig, ax = plt.subplots(figsize=(12, 4.5))
+            fig, ax = plt.subplots(figsize=(12, 5))
             
             # Add a light gray grid for easier tracking
             ax.grid(axis='y', linestyle='--', alpha=0.3, color='gray')
@@ -631,7 +631,7 @@ class PlotGenerator:
             colors = self.sunset_sunrise_palette[:len(profile_dist_pct.columns)]
             
             # Plot bars
-            profile_dist_pct.plot(kind='bar', figsize=(12, 4), rot=0, ax=ax, color=colors)
+            profile_dist_pct.plot(kind='bar', figsize=(12, 5), rot=0, ax=ax, color=colors)
             
             plt.title('Profile Distribution Comparison in Top Positions (Ranks 1-5)')
             plt.xlabel('Search Engine')

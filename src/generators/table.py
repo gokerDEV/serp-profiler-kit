@@ -594,21 +594,35 @@ class LatexTableGenerator:
         
         for feature in technical_features:
             if feature in engine_data['ordinal_logistic_regression']['technical']['coeffs']:
-                coeff = engine_data['ordinal_logistic_regression']['technical']['coeffs'][feature]
-                p_value = engine_data['ordinal_logistic_regression']['technical']['p_values'][feature]
+                # Technical model coefficients
+                tech_coeff = engine_data['ordinal_logistic_regression']['technical']['coeffs'][feature]
+                tech_p_value = engine_data['ordinal_logistic_regression']['technical']['p_values'][feature]
                 
-                # Format p-value
-                if p_value < 0.001:
-                    p_str = "< .001***"
-                elif p_value < 0.01:
-                    p_str = f"{p_value:.3f}**"
-                elif p_value < 0.05:
-                    p_str = f"{p_value:.3f}*"
+                # Combined model coefficients
+                combined_coeff = engine_data['ordinal_logistic_regression']['combined']['coeffs'][feature]
+                combined_p_value = engine_data['ordinal_logistic_regression']['combined']['p_values'][feature]
+                
+                # Format p-values
+                if tech_p_value < 0.001:
+                    tech_p_str = "< .001***"
+                elif tech_p_value < 0.01:
+                    tech_p_str = f"{tech_p_value:.3f}**"
+                elif tech_p_value < 0.05:
+                    tech_p_str = f"{tech_p_value:.3f}*"
                 else:
-                    p_str = f"{p_value:.3f}"
+                    tech_p_str = f"{tech_p_value:.3f}"
+                
+                if combined_p_value < 0.001:
+                    combined_p_str = "< .001***"
+                elif combined_p_value < 0.01:
+                    combined_p_str = f"{combined_p_value:.3f}**"
+                elif combined_p_value < 0.05:
+                    combined_p_str = f"{combined_p_value:.3f}*"
+                else:
+                    combined_p_str = f"{combined_p_value:.3f}"
                 
                 display_name = self.feature_display_names.get(feature, feature)
-                latex += f"{display_name} & {coeff:.3f} & {p_str} & \\multicolumn{{1}}{{c}}{{--}} & \\multicolumn{{1}}{{c}}{{--}} & {coeff:.3f} & {p_str} \\\\\n"
+                latex += f"{display_name} & {tech_coeff:.3f} & {tech_p_str} & \\multicolumn{{1}}{{c}}{{--}} & \\multicolumn{{1}}{{c}}{{--}} & {combined_coeff:.3f} & {combined_p_str} \\\\\n"
         
         # Content features section
         content_features = ['query_in_title', 'query_in_h1', 'exact_query_in_title', 'exact_query_in_h1', 
@@ -618,34 +632,48 @@ class LatexTableGenerator:
         
         for feature in content_features:
             if feature in engine_data['ordinal_logistic_regression']['content']['coeffs']:
-                coeff = engine_data['ordinal_logistic_regression']['content']['coeffs'][feature]
-                p_value = engine_data['ordinal_logistic_regression']['content']['p_values'][feature]
+                # Content model coefficients
+                content_coeff = engine_data['ordinal_logistic_regression']['content']['coeffs'][feature]
+                content_p_value = engine_data['ordinal_logistic_regression']['content']['p_values'][feature]
                 
-                # Format p-value
-                if p_value < 0.001:
-                    p_str = "< .001***"
-                elif p_value < 0.01:
-                    p_str = f"{p_value:.3f}**"
-                elif p_value < 0.05:
-                    p_str = f"{p_value:.3f}*"
+                # Combined model coefficients
+                combined_coeff = engine_data['ordinal_logistic_regression']['combined']['coeffs'][feature]
+                combined_p_value = engine_data['ordinal_logistic_regression']['combined']['p_values'][feature]
+                
+                # Format p-values
+                if content_p_value < 0.001:
+                    content_p_str = "< .001***"
+                elif content_p_value < 0.01:
+                    content_p_str = f"{content_p_value:.3f}**"
+                elif content_p_value < 0.05:
+                    content_p_str = f"{content_p_value:.3f}*"
                 else:
-                    p_str = f"{p_value:.3f}"
+                    content_p_str = f"{content_p_value:.3f}"
+                
+                if combined_p_value < 0.001:
+                    combined_p_str = "< .001***"
+                elif combined_p_value < 0.01:
+                    combined_p_str = f"{combined_p_value:.3f}**"
+                elif combined_p_value < 0.05:
+                    combined_p_str = f"{combined_p_value:.3f}*"
+                else:
+                    combined_p_str = f"{combined_p_value:.3f}"
                 
                 display_name = self.feature_display_names.get(feature, feature)
-                latex += f"{display_name} & \\multicolumn{{1}}{{c}}{{--}} & \\multicolumn{{1}}{{c}}{{--}} & {coeff:.3f} & {p_str} & {coeff:.3f} & {p_str} \\\\\n"
+                latex += f"{display_name} & \\multicolumn{{1}}{{c}}{{--}} & \\multicolumn{{1}}{{c}}{{--}} & {content_coeff:.3f} & {content_p_str} & {combined_coeff:.3f} & {combined_p_str} \\\\\n"
         
-        # Model fit measures
+        # Model fit measures - use actual values from each model
         technical_r2 = engine_data['ordinal_logistic_regression']['technical']['pseudo_r2']
         content_r2 = engine_data['ordinal_logistic_regression']['content']['pseudo_r2']
-        combined_r2 = technical_r2 + content_r2  # Simplified - should be calculated from combined model
+        combined_r2 = engine_data['ordinal_logistic_regression']['combined']['pseudo_r2']
         
         technical_aic = engine_data['ordinal_logistic_regression']['technical']['aic']
         content_aic = engine_data['ordinal_logistic_regression']['content']['aic']
-        combined_aic = min(technical_aic, content_aic)  # Simplified
+        combined_aic = engine_data['ordinal_logistic_regression']['combined']['aic']
         
         technical_bic = engine_data['ordinal_logistic_regression']['technical']['bic']
         content_bic = engine_data['ordinal_logistic_regression']['content']['bic']
-        combined_bic = min(technical_bic, content_bic)  # Simplified
+        combined_bic = engine_data['ordinal_logistic_regression']['combined']['bic']
         
         latex += "\\midrule\n"
         latex += f"Pseudo $R^2$ & \\multicolumn{{2}}{{c}}{{{technical_r2:.4f}}} & \\multicolumn{{2}}{{c}}{{{content_r2:.4f}}} & \\multicolumn{{2}}{{c}}{{{combined_r2:.4f}}} \\\\\n"

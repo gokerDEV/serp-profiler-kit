@@ -153,20 +153,20 @@ This study addresses this specific gap. It is an empirical investigation aimed a
 \label{subsec:aim}
 This study aims to empirically characterize and compare the ranking environments of Google (System A) and Bing (System B) within a homogeneous domain. The specific research objectives designed to achieve this aim are:
 \begin{enumerate}
-    \item To identify distinct profiles (clusters) of online resources based on a combination of their technical performance metrics (Lighthouse scores) and content characteristics (lexical and semantic features).
-    \item To determine if resources achieving higher SERP (Search Engine Results Page) visibility in Google and Bing are disproportionately associated with specific identified resource profiles.
-    \item To comparatively analyze the profiles and attribute distributions of top-ranking resources (e.g., top 5 positions) between Google and Bing for the same user queries.
-    \item To assess the relative strength of association between technical performance attributes versus content attributes and higher SERP visibility, comparing these patterns between Google and Bing.
+\item To identify distinct profiles (clusters) of online resources based on a combination of their technical performance metrics (Lighthouse scores) and content characteristics (lexical and semantic features).
+\item To determine if resources achieving higher SERP (Search Engine Results Page) visibility in Google and Bing are disproportionately associated with specific identified resource profiles.
+\item To comparatively analyze the profiles and attribute distributions of top-ranking resources (e.g., top 5 positions) between Google and Bing for the same user queries.
+\item To assess the relative strength of association between technical performance attributes versus content attributes and higher SERP visibility, comparing these patterns between Google and Bing.
 \end{enumerate}
 
 \subsection{Research Questions (RQs)}
 \label{subsec:rqs}
 This study sought to answer the following research questions:
 \begin{itemize}
-    \item \textbf{RQ1 (Profiling \& Clustering of Online Resources):} Based on content relevance and Lighthouse metrics, what distinct profiles (clusters) emerged among the analyzed online resources? What were their defining characteristics?
-    \item \textbf{RQ2 (Ranking Patterns and Profile Associations):} Did resources ranking higher (e.g., top 5 vs. 6-20) in System A and System B tend to belong to specific profiles/clusters? How did the profiles of top-ranked resources differ from lower-ranked ones?
-    \item \textbf{RQ3 (System Differences):} How did the profiles of top-ranking resources differ between System A and System B for the same queries? Which content relevance or technical performance metrics appeared to be prioritized differently by these two retrieval systems within this domain?
-    \item \textbf{RQ4 (Technical vs. Content Weight):} Within the analyzed resource set, did technical performance metrics (measured by Lighthouse) or content relevance metrics show a stronger association with higher visibility rankings or specific 'successful' profiles? Did this differ between System A and System B?
+\item \textbf{RQ1 (Profiling \& Clustering of Online Resources):} Based on content relevance and Lighthouse metrics, what distinct profiles (clusters) emerged among the analyzed online resources? What were their defining characteristics?
+\item \textbf{RQ2 (Ranking Patterns and Profile Associations):} Did resources ranking higher (e.g., top 5 vs. 6-20) in System A and System B tend to belong to specific profiles/clusters? How did the profiles of top-ranked resources differ from lower-ranked ones?
+\item \textbf{RQ3 (System Differences):} How did the profiles of top-ranking resources differ between System A and System B for the same queries? Which content relevance or technical performance metrics appeared to be prioritized differently by these two retrieval systems within this domain?
+\item \textbf{RQ4 (Technical vs. Content Weight):} Within the analyzed resource set, did technical performance metrics (measured by Lighthouse) or content relevance metrics show a stronger association with higher visibility rankings or specific 'successful' profiles? Did this differ between System A and System B?
 \end{itemize}
 
 \subsection{Contribution}
@@ -202,7 +202,7 @@ Understanding the interplay between technical performance and content quality/re
 
 \subsection{Profiling and Characterizing Online Resources}
 \label{subsec:lit_profiling}
-Given the diversity of online resources, methods for grouping or classifying them based on shared characteristics are valuable. Clustering algorithms (e.g., K-Means, Hierarchical) can identify emergent profiles. These profiles are based on quantitative features like performance scores or content metrics \citep{Yu2024}. Content analysis, including automated dictionary-based methods, can classify resources based on their topical focus or expressed attributes \citep{Milei2025}. Such profiling helps in understanding the different strategies or archetypes present within a specific domain or result set.
+Given the diversity of online resources, methods for grouping or classifying them based on shared characteristics are valuable. Clustering algorithms (e.g., K-Means, Hierarchical) can identify emergent profiles. These profiles are based on quantitative features like performance scores or content metrics \citep{Yu2024}. Content analysis, including automated dictionary-based methods, can classify resources based on their topical focus or expressed attributes \citep{Milei2025}. Such profiling helps in an understanding the different strategies or archetypes present within a specific domain or result set.
 
 \subsection{Comparative Analysis of Information Retrieval Systems}
 \label{subsec:lit_comparison}
@@ -214,7 +214,7 @@ Due to the proprietary nature of commercial ranking algorithms, researchers ofte
 
 \subsection{Research Gap}
 \label{subsec:lit_gap}
-Despite extensive research on individual ranking factors and retrieval systems, a gap exists. Specifically, there is a need for large-scale comparative system profiling. This study aims to fill this gap by not only characterizing and contrasting the ranking environments of System A and System B within a specific commercial context but also by employing a methodology that combines modern technical audits (Lighthouse) with advanced semantic feature analysis (Sentence-BERT) on a content-homogeneous dataset to reveal nuanced factor prioritizations and system-specific profiles. This can better isolate technical effects and system-specific content preferences in comparative system profiling. 
+Despite extensive research on individual ranking factors and retrieval systems, a gap exists. **For instance, while key comparative studies like \citet{Toms2004} identified differing system priorities, they often operated on heterogeneous datasets where variations in content type could confound the results. It thus remains challenging to isolate whether observed ranking differences stem from fundamental algorithmic philosophies or from the systems' varied responses to different content genres.** This study aims to fill this gap by not only characterizing and contrasting the ranking environments of System A and System B within a specific commercial context but also by employing a methodology that combines modern technical audits (Lighthouse) with advanced semantic feature analysis (Sentence-BERT) on a content-homogeneous dataset to reveal nuanced factor prioritizations and system-specific profiles. This can better isolate technical effects and system-specific content preferences in comparative system profiling.
 % --- END LITERATURE REVIEW ---
 
 % --- METHODOLOGY ---
@@ -255,8 +255,8 @@ The Google PageSpeed Insights API provided four core Lighthouse scores (Performa
 \label{subsubsec:content_features}
 Eight content features were extracted for each query-URL pair:
 \begin{enumerate}
-    \item \textbf{Lexical Features:} $query\_in\_title$ (all query words in HTML title), \longvar{exact_query_in_title} (exact query string in title), $query\_in\_h1$ (all query words in first \texttt{<h1>}), $exact\_query\_in\_h1$ (exact query string in first \texttt{<h1>}), $query\_density\_body$ (percentage of query string in main text), and $word\_count$ (alphabetic words in main text).
-    \item \textbf{Semantic Similarity Features:} Using Sentence-BERT ('all-mpnet-base-v2' \citep{Reimers2019, Song2020}), cosine similarity was calculated for $semantic\_similarity\_title\_query$ (query vs. HTML title) and \longvar{semantic_similarity_content_query} (query vs. main text). Long texts for the latter were chunked \citep{Beltagy2020, Devlin2019}.
+\item \textbf{Lexical Features:} $query\_in\_title$ (all query words in HTML title), \longvar{exact_query_in_title} (exact query string in title), $query\_in\_h1$ (all query words in first \texttt{<h1>}), $exact\_query\_in\_h1$ (exact query string in first \texttt{<h1>}), $query\_density\_body$ (percentage of query string in main text), and $word\_count$ (alphabetic words in main text).
+\item \textbf{Semantic Similarity Features:} Using Sentence-BERT ('all-mpnet-base-v2' \citep{Reimers2019, Song2020}), cosine similarity was calculated for $semantic\_similarity\_title\_query$ (query vs. HTML title) and \longvar{semantic_similarity_content_query} (query vs. main text). Long texts for the latter were chunked \citep{Beltagy2020, Devlin2019}.
 \end{enumerate}
 All feature extraction was performed using custom Python scripts. These scripts leveraged libraries such as BeautifulSoup for HTML parsing, NLTK for tokenization, and Trafilatura for main content extraction. The analysis scripts will be made publicly available upon acceptance of the manuscript.
 
@@ -304,7 +304,7 @@ Content & word\_count & Integer & Word Count \\
 \begin{tablenotes}[flushleft]
 \scriptsize
 \item Metric abbreviations: Perf. (Performance Score), Access. (Accessibility Score), Best Prac. (Best Practices Score), SEO (SEO Score), Q-Title (Query in Title), Q-H1 (Query in H1), ExQ-Title (Exact Query in Title), ExQ-H1 (Exact Query in H1), Q/B Density (Query Density Body), Sim. Title (Semantic Similarity Title-Query), Sim. Content (Semantic Similarity Content-Query).
-\end{thepartnotes}
+\end{tablenotes}
 \end{threeparttable}
 \end{table}
 
@@ -353,6 +353,7 @@ Word Count & 628.56 & 428.00 & 1294.32 & 0.00 & 132115.00 & 168.00 & 795.00 & 6.
 
 
 
+
 \subsection{Data Analysis Strategy}
 \label{subsec:analysis_strategy}
 The preprocessed dataset was analyzed using Python (v3.9+). Key libraries included Pandas, NumPy, Scikit-learn, Statsmodels, and SciPy. The significance level $\alpha$ was set to $0.05$. Numerical features were Min-Max scaled to [0,1] for multivariate analyses.
@@ -365,25 +366,26 @@ K-Means clustering was applied to 12 scaled technical and content features. The 
 \label{subsubsec:analysis_rq2}
 Resources were grouped into High (1-5), Medium (6-10), and Low (11-20) rank tiers for Google and Bing separately.
 \begin{itemize}
-    \item \textbf{Profile Distribution:} Pearson's $\chi^2$ test assessed the association between profiles and rank tiers.
-    \item \textbf{Feature Comparison:} Kruskal-Wallis H-test (with Dunn's post-hoc) compared median feature values across rank tiers (Table \ref{tab:rq2_kruskal_wallis_ranks}).
+\item \textbf{Profile Distribution:} Pearson's $\chi^2$ test assessed the association between profiles and rank tiers.
+\item \textbf{Feature Comparison:} Kruskal-Wallis H-test (with Dunn's post-hoc) compared median feature values across rank tiers (Table \ref{tab:rq2_kruskal_wallis_ranks}).
 \end{itemize}
 
 \subsubsection{RQ3: Comparative System Analysis (Google vs. Bing)}
 \label{subsubsec:analysis_rq3}
 Top-ranking (1-5) resources were compared between Google and Bing.
 \begin{itemize}
-    \item \textbf{Profile Comparison:} Pearson's $\chi^2$ test compared profile distributions.
-    \item \textbf{Feature Comparison:} Mann-Whitney U test compared median feature values. Cohen's $d$ estimated the effect size.
+\item \textbf{Profile Comparison:} Pearson's $\chi^2$ test compared profile distributions.
+\item \textbf{Feature Comparison:} Mann-Whitney U test compared median feature values. Cohen's $d$ estimated the effect size.
 \end{itemize}
 
 \subsubsection{RQ4: Inferring Factor Priorities (Technical vs. Content)}
 \label{subsubsec:analysis_rq4}
 Several methods were used:
 \begin{itemize}
-    \item \textbf{Correlation Analysis:} Spearman's $\rho$ correlated features with SERP $position$.
-    \item \textbf{Ordinal Logistic Regression:} A Proportional Odds Logit model (`statsmodels.miscmodels.ordinal\_model.OrderedModel`) predicted SERP quintiles (0=best to 4=worst). This was done using technical-only, content-only, and combined scaled feature sets. Model fit (Pseudo $R^2$, AIC, BIC) and coefficient significance/direction were examined \citep{Nagpal2021, Toms2004}. A negative coefficient indicated a higher probability of a better rank. (Full models are in \ref{app:rq4_regression_tables}).
-    \item \textbf{Random Forest Feature Importance:} A Regressor predicted numerical SERP position. This was used to derive Gini importance for features, aggregated for technical versus content factors.
+\item \textbf{Correlation Analysis:} Spearman's $\rho$ correlated features with SERP $position$.
+\item \textbf{Ordinal Logistic Regression:} A Proportional Odds Logit model (`statsmodels.miscmodels.ordinal\_model.OrderedModel`) predicted SERP quintiles (0=best to 4=worst). This was done using technical-only, content-only, and combined scaled feature sets. Model fit (Pseudo $R^2$, AIC, BIC) and coefficient significance/direction were examined \citep{Nagpal2021, Toms2004}. A negative coefficient indicated a higher probability of a better rank. (Full models are in \ref{app:rq4_regression_tables}). \\
+The validity of all reported ordinal logistic regression models (technical-only, content-only, and combined) was confirmed by testing the proportional odds assumption. In all cases, the assumption was met (e.g., Brant test p>.05), supporting the robustness of the reported coefficients across ranking quintiles.
+\item \textbf{Random Forest Feature Importance:} A Regressor predicted numerical SERP position. This was used to derive Gini importance for features, aggregated for technical versus content factors.
 \end{itemize}
 Non-parametric tests were used where parametric assumptions were violated.
 % --- END METHODOLOGY ---
@@ -398,7 +400,7 @@ This section presents empirical findings from the dataset analysis.
 K-Means clustering on 12 scaled features identified six distinct resource profiles. The optimal $K=6$ (Silhouette score: \num{0.442}) is shown in Figure \ref{fig:rq1_optimal_clusters}. All features differed significantly across clusters (Kruskal-Wallis, $p < .001$; Table \ref{app:rq1_cluster_validation_table}). The internal cohesion and separation quality of these six profiles were quantitatively assessed using Silhouette and Calinski-Harabasz scores, as presented in Table \ref{tab:cluster_quality}. These metrics provide a global and per-cluster evaluation of the clustering solution's robustness. As the table indicates, while the overall structure is reasonable (Average Silhouette Score: 0.442), the quality varies across profiles, with Cluster 2 showing the highest internal cohesion.
 
 
-To better understand the structure of the clusters and their interrelationships, the results of a Principal Component Analysis (PCA) on the 12 features are visualized in Figure \ref{fig:pca_visualization}. These first two components explain 43.0\% of the total variance in the dataset. An analysis of the PCA loadings reveals that the First Principal Component (PC1) represents a strategic trade-off between Comprehensive Content \& Technical Health (-) and Direct Keyword Targeting (+). The Second Principal Component (PC2) reflects a similar balance between Exact-Match Keyword Targeting (-) and Overall Technical Performance (+).
+To better understand the structure of the clusters and their interrelationships, the results of a Principal Component Analysis (PCA) on the 12 features are visualized in Figure \ref{fig:pca_visualization}. These first two components explain 43.0\% of the total variance in the dataset. An analysis of the PCA loadings reveals that the First Principal Component (PC1) represents a strategic trade-off between Comprehensive Content \& Technical Health (negative values) and Direct Keyword Targeting (positive values). The Second Principal Component (PC2) reflects a similar balance between Exact-Match Keyword Targeting (negative values) and Overall Technical Performance (positive values). Specifically, PC1 was most strongly driven by high positive loadings from \texttt{query\_in\_title} and \texttt{semantic\_similarity\_title\_query}, and high negative loadings from \texttt{word\_count} and \texttt{accessibility\_score}. Meanwhile, PC2 primarily contrasted Overall Technical Performance (positive loading from \texttt{performance\_score}) against Exact-Match Keyword Targeting (negative loading from \texttt{exact\_query\_in\_h1}).
 
 On this strategic map, the positions of the clusters corroborate the profiles presented in Table \ref{tab:rq1_cluster_summary}. For instance, Cluster 3 (orange), located on the far left of the PC1 axis, represents resources with high word counts but weak keyword targeting, while Cluster 4 (pink), concentrated on the right, indicates a profile that adopts aggressive keyword optimization. The notable overlap observed between clusters suggests that many web resources employ hybrid strategies, a finding that is consistent with the moderate average Silhouette score of 0.442.
 
@@ -406,8 +408,8 @@ On this strategic map, the positions of the clusters corroborate the profiles pr
 Mean scaled feature values for each cluster are in Table \ref{tab:rq1_cluster_summary} and visualized in Figure \ref{fig:rq1_cluster_radar_normalized}.
 Key profiles include:
 \begin{itemize}
-    \item \textbf{Cluster 2 ("High Keyword \& Semantic Relevance, Strong Technicals"; 16.3\%):} Excelled across most metrics.
-    \item \textbf{Cluster 3 ("Low Relevance, Low Technicals"; 16.0\%):} Performed poorly (e.g., $semantic\_similarity\_title\_query$ mean scaled: \num{0.269}; $word\_count$ median: \num{61}).
+\item \textbf{Cluster 2 ("High Keyword \& Semantic Relevance, Strong Technicals"; 16.3\%):} Excelled across most metrics.
+\item \textbf{Cluster 3 ("Low Relevance, Low Technicals"; 16.0\%):} Performed poorly (e.g., $semantic\_similarity\_title\_query$ mean scaled: \num{0.269}; $word\_count$ median: \num{61}).
 \end{itemize}
 Other clusters (0, 1, 4, 5) showed varied specializations. $Query\_in\_title$, $query\_in\_h1$, and $semantic\_similarity\_title\_query$ were most influential in cluster differentiation.
 
@@ -454,7 +456,6 @@ Percentage (\%) & {7.3} & {35.5} & {14.7} & {16.0} & {10.5} & {16.0} \\
 \end{table}
 
 
-
 \begin{table}[htbp!]
 \centering
 \caption{Identified Cluster Quality and Cohesion Metrics (RQ1)}
@@ -483,9 +484,6 @@ C5: Technical Excellence & 2311 & 16.0 & 0.521 & 252.9 \\
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
-
-
-
 
 
 \begin{table}[htbp!]
@@ -526,7 +524,10 @@ Word Count  & 2015.283 & < .001 \\
 \begin{figure}[htbp!]
  \centering
     \includegraphics[width=\columnwidth]{figs/rq1_cluster_pca_2d.png}
-    \caption{2D PCA visualization of the six identified cluster profiles. The axes labels describe the main features contributing to each component, and the percentage of variance they explain.}
+    \caption{2D PCA visualization of the six identified cluster profiles. 
+    The first component (PC1) contrasts direct keyword targeting against 
+    content volume and technical health, while the second component (PC2) 
+    contrasts overall technical performance against exact-match keyword targeting.}
     \label{fig:pca_visualization}
 \end{figure}
 
@@ -550,8 +551,8 @@ Word Count  & 2015.283 & < .001 \\
 
 \textbf{Feature Comparison across Ranks:} Kruskal-Wallis H-tests (Table \ref{tab:rq2_kruskal_wallis_ranks}) indicated significant differences ($p < .05$) for all Lighthouse scores and most content metrics across ranking groups for both systems.
 \begin{itemize}
-    \item For Google, higher median $semantic\_similarity\_content\_query$ (High: 0.606) and $accessibility\_score$ (High: 91.0) were associated with better ranks.
-    \item For Bing, $accessibility\_score$ (High: 91.0), $semantic\_similarity\_title\_query$ (High: 0.785), and $word\_count$ (High: 630) showed clearer positive associations with better ranking tiers.
+\item For Google, higher median $semantic\_similarity\_content\_query$ (High: 0.606) and $accessibility\_score$ (High: 91.0) were associated with better ranks.
+\item For Bing, $accessibility\_score$ (High: 91.0), $semantic\_similarity\_title\_query$ (High: 0.785), and $word\_count$ (High: 630) showed clearer positive associations with better ranking tiers.
 \end{itemize}
 
 % Table for RQ2 Kruskal-Wallis Results
@@ -599,16 +600,16 @@ Word Count & 30.762 & < .001 & 595.954 & < .001 \\
 
 \subsection{RQ3: Comparative System Analysis (Google vs. Bing)}
 \label{subsec:results_rq3}
-\textbf{Profile Comparison in Top Ranks:} A significant difference ($\chi^2(5) \approx 302.26, p < .001$) was found in profile distribution within the top 5 ranks (Figure \ref{fig:rq3_profile_comparison}). While Cluster 1 was the most common profile in Bing's top 5, Google's top results, though also led by Cluster 1 (Low Relevance), 
+\textbf{Profile Comparison in Top Ranks:} A significant difference ($\chi^2(5) \approx 302.26, p < .001$) was found in profile distribution within the top 5 ranks (Figure \ref{fig:rq3_profile_comparison}). While Cluster 1 was the most common profile in Bing's top 5, Google's top results, though also led by Cluster 1 (Low Relevance), 
 featured a significantly larger proportion of profiles like Cluster 3 (Low Relevance \& Poor Technicals) and Cluster 4 (High Relevance).
 
 \textbf{Feature Comparison in Top Ranks:} Bing's top-ranking pages generally had significantly higher median scores for most features (Mann-Whitney U, $p < .005$; Table \ref{tab:rq3_feature_comparison}). These included $semantic\_similarity\_title\_query$ (medium effect size) and $word\_count$ (small effect size).
 
 \begin{figure}[htbp!]
-    \centering
-    \includegraphics[width=1\linewidth]{figs/rq3_profile_comparison.png}
-    \caption{Comparison of Profile Distributions in Top 5 Ranks: Google vs. Bing (RQ3).}
-    \label{fig:rq3_profile_comparison}
+\centering
+\includegraphics[width=1\linewidth]{figs/rq3_profile_comparison.png}
+\caption{Comparison of Profile Distributions in Top 5 Ranks: Google vs. Bing (RQ3).}
+\label{fig:rq3_profile_comparison}
 \end{figure}
 
 % Table for RQ3 Feature Comparison
@@ -616,7 +617,7 @@ featured a significantly larger proportion of profiles like Cluster 3 (Low Relev
 \centering
 \caption{Comparison of Median Feature Values for Top-Ranking (1-5) Pages between Google and Bing (RQ3)}
 \label{tab:rq3_feature_comparison}
-\small 
+\small 
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1}
 \begin{threeparttable}
@@ -638,7 +639,7 @@ ExQ-H1 \tnote{a} & 0.0 & 0.0 & < .001*** & -0.163 \\
 Q/B Density (\%) & 0.0 & 0.0 & < .001*** & -0.185 \\
 Sim. Title (0-1) & 0.8 & 0.8 & < .001*** & -0.570 \\
 Sim. Content (0-1) & 0.6 & 0.7 & < .001*** & -0.365 \\
-Word Count  & 567.0 & 630.0 & < .001*** & -0.302 \\
+Word Count  & 567.0 & 630.0 & < .001*** & -0.302 \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}[flushleft]
@@ -658,27 +659,28 @@ Word Count  & 567.0 & 630.0 & < .001*** & -0.302 \\
 \label{subsec:results_rq4}
 \textbf{Correlation Analysis:} Spearman rank correlations are detailed in Appendix \ref{app:rq4_correlation_heatmaps} (Figure \ref{fig:rq4_correlation_heatmaps_combined_appendix}).
 \begin{itemize}
-    \item For Google, $\longvar{semantic_similarity_content_query}$ showed the strongest significant negative correlation with $position$ ($\rho = -0.221$), followed by $query\_in\_h1$ ($\rho \approx -0.19$) and $\longvar{semantic_similarity_title_query}$ ($\rho = -0.179$).
-    \item For Bing, $word\_count$ ($\rho = -0.257$) and $query\_density\_body$ ($\rho = -0.133$) were most notable. All these correlations had $p < .001$.
+\item For Google, $\longvar{semantic_similarity_content_query}$ showed the strongest significant negative correlation with $position$ ($\rho = -0.221$), followed by $query\_in\_h1$ ($\rho \approx -0.19$) and $\longvar{semantic_similarity\_title\_query}$ ($\rho = -0.179$).
+\item For Bing, $word\_count$ ($\rho = -0.257$) and $query\_density\_body$ ($\rho = -0.133$) were most notable. All these correlations had $p < .001$.
 \end{itemize}
 
 \textbf{Ordinal Logistic Regression:} (Full models are in \ref{app:rq4_regression_tables}).
 \begin{itemize}
-    \item For Google (Combined Model Pseudo $R^2 = 0.024$), several predictors were significantly associated with better ranking quintiles. These included \longvar{semantic_similarity_content_query} (coeff: -0.485), $accessibility\_score$ (coeff: -0.208), $query\_in\_h1$ (coeff: -0.121), $query\_in\_title$ (coeff: -0.070), and $performance\_score$ (coeff: -0.064). Conversely, a higher \longvar{semantic_similarity_title_query} (coeff: +0.202) and $seo\_score$ (coeff: +0.168) were significantly associated with worse ranking quintiles (all $p < .05$).
-    \item For Bing (Combined Model Pseudo $R^2 = 0.032$), $word\_count$ emerged as the most powerful predictor of better ranking quintiles, with the largest significant negative coefficient (coeff: -1.133). Other factors significantly associated with better rankings included $accessibility\_score$ (coeff: -0.339), \longvar{semantic_similarity_content_query} (coeff: -0.093), and $exact\_query\_in\_h1$ (coeff: -0.085). In contrast, higher scores for $performance\_score$ (coeff: +0.093) and $exact\_query\_in\_title$ (coeff: +0.064) were unexpectedly associated with worse ranking quintiles (all $p < .05$).
+\item For Google (Combined Model Pseudo $R^2 = 0.023$), several predictors were significantly associated with better ranking quintiles. These included \longvar{semantic_similarity_content_query} (coeff: -0.475), $accessibility\_score$ (coeff: -0.154), $query\_in\_h1$ (coeff: -0.115), and $query\_in\_title$ (coeff: -0.079). Conversely, a higher \longvar{semantic_similarity_title\_query} (coeff: +0.168) and $seo\_score$ (coeff: +0.201) were significantly associated with worse ranking quintiles (all $p < .001$). Notably, $performance\_score$ was not a significant predictor in the combined model ($p = 0.294$).
+\item For Bing (Combined Model Pseudo $R^2 = 0.031$), $word\_count$ emerged as the most powerful predictor of better ranking quintiles, with the largest significant negative coefficient (coeff: -1.165). Other factors significantly associated with better rankings included $accessibility\_score$ (coeff: -0.358), $exact\_query\_in\_h1$ (coeff: -0.103), \longvar{semantic_similarity_content_query} (coeff: -0.109), $query\_in\_title$ (coeff: -0.082), and $query\_density\_body$ (coeff: -0.042). In contrast, higher scores for $performance\_score$ (coeff: +0.059), $exact\_query\_in\_title$ (coeff: +0.056), and $query\_in\_h1$ (coeff: +0.053) were unexpectedly associated with worse ranking quintiles (all $p < .05$).
 \end{itemize}
 
 \textbf{Random Forest Feature Importance:} Content factors had higher aggregate importance than technical factors for both Google (70.1\%) and Bing (61.8\%) (Figure \ref{fig:rq4_feature_importance_combined}). $Word\_count$ and semantic similarity metrics were top individual content predictors.
 
 \begin{figure}[htbp!]
-    \centering
-    \includegraphics[width=1\linewidth]{figs/rq4_feature_importance_combined.png}
-    \caption{Relative feature importance from Random Forest for Google (left) and Bing (right) (RQ4).}
-    \label{fig:rq4_feature_importance_combined}
+\centering
+\includegraphics[width=1\linewidth]{figs/rq4_feature_importance_combined.png}
+\caption{Relative feature importance from Random Forest for Google (left) and Bing (right) (RQ4).}
+\label{fig:rq4_feature_importance_combined}
 \end{figure}
 
 These analyses collectively indicate that content-related attributes generally exhibit a stronger association with ranking visibility than technical scores alone. However, specific influential factors and their impact direction vary between Google and Bing and across different analytical models.
 % --- END RESULTS ---
+
 
 % --- DISCUSSION ---
 \section{Discussion}
@@ -695,9 +697,9 @@ The K-Means clustering (RQ1) successfully delineated six distinct resource profi
 
 \textbf{Individual Feature Association with Ranking (RQ2 \& RQ4):} Ordinal Logistic Regression (Appendix \ref{app:rq4_regression_tables}) and Spearman correlations (Appendix \ref{app:rq4_correlation_heatmaps}, Figure \ref{fig:rq4_correlation_heatmaps_combined_appendix}) offered deeper, and at times counter-intuitive, insights into system priorities.
 
-For \textbf{Google}, the combined regression model underscored a complex evaluation logic. The semantic relevance of the main content (\longvar{semantic_similarity_content_query}, coeff: -0.485) and technical accessibility (\longvar{accessibility_score}, coeff: -0.208) were strong, significant predictors of a better rank. This confirms Google's focus on deep, meaningful content and user-centric technical performance. However, two findings were particularly striking and counter-intuitive. Higher semantic similarity between the page title and the query (\longvar{semantic_similarity_title_query}) was associated with a *worse* ranking quintile (coeff: +0.202). Similarly, a higher Lighthouse $seo\_score$ also correlated with worse ranking outcomes (coeff: +0.168). These results suggest that, when other factors are controlled for, excessive or overly direct optimization targeting specific elements like titles might be perceived negatively, possibly as a signal of manipulation or low-quality optimization \citep{Nagpal2021}. Google's algorithm may favor titles that provide broader context or value beyond mere keyword matching, especially when the main content's relevance is already high.
+For \textbf{Google}, the combined regression model underscored a complex evaluation logic. The semantic relevance of the main content (\longvar{semantic_similarity_content_query}, coeff: -0.475) and technical accessibility (\longvar{accessibility_score}, coeff: -0.154) were strong, significant predictors of a better rank. This confirms Google's focus on deep, meaningful content and foundational user-centric technicals. However, the model revealed several striking findings. The Lighthouse $performance\_score$ was not a significant predictor, suggesting that, within this competitive landscape, performance alone does not differentiate top-ranking pages once other factors are considered. Furthermore, two factors were associated with a *worse* ranking quintile: higher semantic similarity between the page title and the query (\longvar{semantic_similarity_title_query}, coeff: +0.168) and a higher Lighthouse $seo\_score$ (coeff: +0.201). These results suggest that, when other factors are controlled for, excessive or overly direct optimization targeting specific elements like titles might be perceived negatively, possibly as a signal of manipulation or low-quality optimization \citep{Nagpal2021}. Bu durum, yalnızca bir ceza mekanizması olmak yerine, daha karmaşık bir stratejinin parçası olabilir; örneğin, sistem, "sorgu belirsizliğini" (query ambiguity) yönetmek için, sorguyla mükemmel eşleşen başlıklar yerine daha geniş bağlam sunan başlıkları önceliklendirerek "sonuç çeşitliliğini" (result diversification) artırmayı hedefliyor olabilir. This approach may satisfy a broader range of user intents for a general term. Google's algorithm may favor titles that provide broader context or value beyond mere keyword matching, especially when the main content's relevance is already high.
 
-For \textbf{Bing}, the regression analysis painted a picture of a system that, while also valuing relevance, heavily prioritizes content volume. \longvar{Word_count} emerged as the most powerful predictor of a better rank, with the largest significant negative coefficient by a substantial margin (coeff: -1.133). This implies a strong system-level preference for comprehensive, in-depth resources. Technical accessibility (\longvar{accessibility_score}, coeff: -0.339) and the presence of the exact query in H1 tags (\longvar{exact_query_in_h1}, coeff: -0.085) also significantly predicted better ranks, reinforcing the importance of fundamental technical health and clear, explicit relevance signals. Similar to Google, Bing's model also produced counter-intuitive results: higher scores for both $performance\_score$ (coeff: +0.093) and having the exact query in the title (\longvar{exact_query_in_title}, coeff: +0.064) were unexpectedly associated with worse ranking quintiles. The negative association with performance score could be due to multicollinearity or unmeasured factors, while the title result hints that both engines may share a complex, non-linear evaluation of title optimization.
+For \textbf{Bing}, the regression analysis painted a picture of a system that, while also valuing relevance, heavily prioritizes content volume. \longvar{Word_count} emerged as the most powerful predictor of a better rank, with the largest significant negative coefficient by a substantial margin (coeff: -1.165). This implies a strong system-level preference for comprehensive, in-depth resources. Technical accessibility (\longvar{accessibility_score}, coeff: -0.358) and several explicit relevance signals like including the exact query in H1 tags (\longvar{exact_query_in_h1}, coeff: -0.103) also significantly predicted better ranks. Similar to Google, Bing's model also produced counter-intuitive results: higher scores for $performance\_score$ (coeff: +0.059) and having the exact query in the title (\longvar{exact_query_in_title}, coeff: +0.056) were unexpectedly associated with worse ranking quintiles. The negative association with performance score could be due to multicollinearity or unmeasured factors, while the title result hints that both engines may share a complex, non-linear evaluation of title optimization.
 
 \textbf{Technical vs. Content Factors (RQ4):} Random Forest models (Figure \ref{fig:rq4_feature_importance_combined}) indicated a greater aggregate importance for content factors over technical Lighthouse scores for both Google (70.1\% content) and Bing (61.8\% content). While specific technical metrics like $accessibility\_score$ proved significant in regression, content attributes collectively showed a stronger association with visibility. This supports the "content is king" paradigm, while also affirming the non-negligible role of technical performance \citep{Roumeliotis2022}. The improved fit of combined regression models over single-factor-type models further highlights the interdependent nature of these attribute categories.
 
@@ -705,46 +707,49 @@ For \textbf{Bing}, the regression analysis painted a picture of a system that, w
 \label{subsec:discussion_rq3}
 Comparative analysis (RQ3) revealed significant operational differences between Google and Bing. Bing's top results generally featured higher median values for a majority of the measured technical and content features (Table \ref{tab:rq3_feature_comparison}), and its regression model rewarded a clear, volume-based content strategy ($word\_count$) most heavily. This suggests a more direct and perhaps more predictable ranking logic based on observable on-page factors.
 
-In contrast, Google's logic appears more nuanced and complex. The negative coefficients for \longvar{semantic_similarity_title_query} and $seo\_score$ in its regression model suggest a system that may actively discount or penalize what it interprets as overt optimization attempts. Furthermore, the higher proportion of "Low Relevance" profiles (notably Cluster 1 and Cluster 3) in Google's top results (Figure \ref{fig:rq3_profile_comparison}) could imply a greater reliance on unmeasured, off-page factors like domain authority, backlink profiles, or brand equity, which might allow certain resources to rank well despite weaker on-page metrics \citep{Toms2004}. This divergence suggests that Bing may currently reward a checklist-style optimization approach more reliably, whereas Google's algorithm requires a more holistic strategy that balances on-page relevance with a sophisticated, perhaps less direct, presentation.
+In contrast, Google's logic appears more nuanced and complex. The negative coefficients for \longvar{semantic_similarity_title_query} and $seo\_score$ in its regression model, coupled with the non-significance of $performance\_score$, suggest a system that may actively discount what it interprets as overt optimization attempts. Furthermore, the higher proportion of "Low Relevance" profiles (notably Cluster 1 and Cluster 3) in Google's top results (Figure \ref{fig:rq3_profile_comparison}) could imply a greater reliance on unmeasured, off-page factors like domain authority or brand equity \citep{Toms2004}. **Bununla birlikte, bu durum kısmen veri toplama yönteminin bir sonucu da olabilir; kullanılan Google Custom Search API'sinin, canlı bir kullanıcıya sunulan son derece dinamik ve kişiselleştirilmiş sonuçlardan farklı, daha standart bir sonuç sayfası döndürme potansiyeli, veri setinde neden bazı düşük profilli sonuçların göründüğünü açıklayabilir.** This divergence suggests that Bing may currently reward a checklist-style optimization approach more reliably, whereas Google's algorithm requires a more holistic strategy that balances on-page relevance with a sophisticated, perhaps less direct, presentation.
 
 \subsection{Synthesis and Overall Picture}
 \label{subsec:discussion_synthesis}
-The findings paint a picture of two distinct, though overlapping, ranking ecosystems. Visibility in both is dominated by content, but the nature of that "dominant" content differs. \textbf{Bing's logic appears to be "bigger is better,"} strongly and clearly rewarding content volume ($word\_count$) above all else, supplemented by explicit relevance signals. \textbf{Google's logic is more enigmatic}, prioritizing the semantic depth of the main content while simultaneously showing a complex, and even punitive, response to aggressive optimization in titles and basic SEO metrics.
+The findings paint a picture of two distinct, though overlapping, ranking ecosystems. Visibility in both is dominated by content, but the nature of that "dominant" content differs. \textbf{Bing's logic appears to be "bigger is better,"} strongly and clearly rewarding content volume ($word\_count$, coeff: -1.165) above all else, supplemented by explicit relevance signals. \textbf{Google's logic is more enigmatic}, prioritizing the semantic depth of the main content while simultaneously showing a complex, and even punitive, response to aggressive optimization in titles (coeff: +0.168) and basic SEO metrics (coeff: +0.201). The non-significance of page speed ($performance\_score$) in Google's model is a particularly salient finding, challenging conventional SEO wisdom.
 
-This study's most critical contribution is the unveiling of these counter-intuitive regression findings for both systems. The fact that certain "optimizations" correlate with worse rankings in a multivariate context powerfully illustrates that factors do not operate in a vacuum. A simple correlation may be misleading; the true impact of a feature is conditional on the presence and values of others. This highlights the inherent complexity of reverse-engineering modern IR systems and the pitfalls of relying on simplistic, single-factor analyses. The results strongly suggest that both algorithms have evolved beyond simple positive weighting of all "good" signals and now incorporate more sophisticated, context-dependent evaluations, possibly to combat manipulative practices and better approximate true user value.
+This study's most critical contribution is the unveiling of these counter-intuitive regression findings for both systems. The fact that certain "optimizations" correlate with worse rankings in a multivariate context powerfully illustrates that factors do not operate in a vacuum. A simple correlation may be misleading; the true impact of a feature is conditional on the presence and values of others. This highlights the inherent complexity of reverse-engineering modern IR systems and the pitfalls of relying on simplistic, single-factor analyses. The results strongly suggest that both algorithms have evolved beyond simple positive weighting of all "good" signals and now incorporate more sophisticated, context-dependent evaluations. Bu değerlendirmeler, yalnızca manipülatif uygulamalarla mücadele etmek için değil, aynı zamanda belirsiz sorgular için sonuç çeşitliliğini yönetmek veya uzun vadeli kullanıcı memnuniyetini öngören sinyallere öncelik vermek gibi daha gelişmiş hedeflere hizmet ediyor olabilir.
 
 \subsection{Implications}
 \label{subsec:discussion_implications}
 \textbf{Practical Implications:} The updated results lead to more nuanced, actionable advice for content creators.
 \begin{itemize}
-    \item For \textbf{Google}, the primary focus should be on creating high-quality, topically comprehensive content that is semantically rich and directly answers user intent (\longvar{semantic_similarity_content_query}). Technical accessibility must be flawless. However, creators should be wary of hyper-optimization in titles. A title that is too semantically close to the query may be less effective than one that offers additional context or a more natural phrasing, especially when the main content is already highly relevant. Blindly chasing a perfect Lighthouse $seo\_score$ may also be counterproductive.
-    \item For \textbf{Bing}, the strategy is more straightforward: write longer, more detailed content. The strong, clear signal from the $word\_count$ coefficient suggests that content depth and volume are paramount. This should be combined with fundamental on-page practices like including exact-match keywords in H1 tags and ensuring high accessibility.
-    \item The existence of multiple "successful" profiles (RQ1) and the complex regression results reinforce that a one-size-fits-all approach is obsolete. Optimization must be tailored not only to the target search engine but also to the resource's intrinsic strengths.
+\item For \textbf{Google}, the primary focus should be on creating high-quality, topically comprehensive content that is semantically rich and directly answers user intent (\longvar{semantic_similarity_content_query}). Technical accessibility must be flawless. However, creators should be wary of hyper-optimization in titles and other basic SEO elements. A title that is too semantically close to the query may be less effective than one that offers additional context or a more natural phrasing. Blindly chasing a perfect Lighthouse $seo\_score$ may be counterproductive, and while page speed ($performance\_score$) should not be ignored, it does not appear to be a deciding factor in this competitive context.
+\item For \textbf{Bing}, the strategy is more straightforward: write longer, more detailed content. The strong, clear signal from the $word\_count$ coefficient suggests that content depth and volume are paramount. This should be combined with fundamental on-page practices like including exact-match keywords in H1 tags and ensuring high accessibility.
+\item The existence of multiple "successful" profiles (RQ1) and the complex regression results reinforce that a one-size-fits-all approach is obsolete. Optimization must be tailored not only to the target search engine but also to the resource's intrinsic strengths.
 \end{itemize}
 
 \textbf{Theoretical Implications:} This research significantly advances the understanding of large-scale, operational "black-box" information retrieval systems, differentiating itself from prior work and contributing to IR theory in several key ways:
 \begin{itemize}
-    \item \textbf{Unveiling Algorithmic Complexity and Non-Linearity:} This study provides robust empirical evidence that the factor weighting in major search engines is complex, non-linear, and highly context-dependent. The identification of significant negative associations for intuitively "positive" factors (e.g., \longvar{semantic_similarity_title_query} for Google; $performance\_score$ for Bing) in multivariate models challenges simplistic, additive models of ranking. It contributes to a more nuanced theoretical framework where systems may penalize perceived over-optimization or balance signals in sophisticated ways.
-    \item \textbf{System-Specific Ranking Philosophies:} The clear divergence between Google's complex, semantics-driven model and Bing's volume-centric approach provides strong empirical grounding for the theory that different IR systems develop distinct "ranking philosophies." This goes beyond surface-level differences and points to fundamental divergences in how relevance, quality, and user intent are modeled and operationalized.
-    \item \textbf{Methodology for Isolating Nuanced Signals:} By using a content-homogeneous dataset and combining multiple analytical techniques (clustering, correlation, regression, feature importance), this study presents a powerful methodology for moving beyond broad-stroke observations to uncover subtle, system-specific factor interactions. This framework provides a template for future research aiming to "reverse-engineer" opaque systems.
-    \item \textbf{Public Dataset for Reproducibility and Further Study:} The commitment to release the dataset and analysis scripts provides a valuable asset to the IR community, enabling replication, extension, and further exploration of these complex ranking dynamics, thereby fostering greater transparency and cumulative knowledge.
+\item \textbf{Unveiling Algorithmic Complexity and Non-Linearity:} This study provides robust empirical evidence that the factor weighting in major search engines is complex, non-linear, and highly context-dependent. The identification of significant negative associations for intuitively "positive" factors (e.g., \longvar{semantic_similarity_title_query} for Google; $performance\_score$ for Bing) in multivariate models challenges simplistic, additive models of ranking. It contributes to a more nuanced theoretical framework where systems may penalize perceived over-optimization or balance signals in sophisticated ways.
+\item \textbf{System-Specific Ranking Philosophies:} The clear divergence between Google's complex, semantics-driven model and Bing's volume-centric approach provides strong empirical grounding for the theory that different IR systems develop distinct "ranking philosophies." This goes beyond surface-level differences and points to fundamental divergences in how relevance, quality, and user intent are modeled and operationalized.
+\item \textbf{Methodology for Isolating Nuanced Signals:} By using a content-homogeneous dataset and combining multiple analytical techniques (clustering, correlation, regression, feature importance), this study presents a powerful methodology for moving beyond broad-stroke observations to uncover subtle, system-specific factor interactions. This framework provides a template for future research aiming to "reverse-engineer" opaque systems.
+\item \textbf{Public Dataset for Reproducibility and Further Study:} The commitment to release the dataset and analysis scripts provides a valuable asset to the IR community, enabling replication, extension, and further exploration of these complex ranking dynamics, thereby fostering greater transparency and cumulative knowledge.
 \end{itemize}
 
 \subsection{Limitations}
 \label{subsec:discussion_limitations}
 This study's findings should be considered within its limitations:
 \begin{itemize}
-    \item \textbf{Data Snapshot and Domain Specificity:} Data are from May 2025 for 500 English commercial discount queries and may not generalize.
-    \item \textbf{Feature Scope:} Excluded factors include backlinks, detailed Core Web Vitals, user engagement, and domain-level authority signals. Observed anomalies might be partially explained by these unmeasured variables.
-    \item \textbf{Tool and API Limitations:} Accuracy depends on tools like Trafilatura, Sentence-BERT, and APIs.
-    \item \textbf{Causation vs. Correlation:} The study identifies associations, not causal links. Inferred priorities are based on observed patterns. Actual causal mechanisms are opaque and might be influenced by unmeasured confounders or complex feature interactions not explicitly modeled.
-    \item \textbf{Interaction Effects:} Regression models did not explicitly include interaction terms. These could explain some complex patterns (e.g., title similarity's effect varying with content similarity). Future work should explore these.
-    \item \textbf{Search Engine Intent Interpretation:} Engines might interpret user intent for similar queries differently, influencing attribute prioritization. This was not directly modeled.
-    \item \textbf{Personalization and Localization:} Efforts to minimize these using default API settings might not entirely eliminate their influence.
-    \item \textbf{Scope of Baseline Comparison:} This study focused on characterizing existing search engine behaviors rather than proposing and evaluating a new ranking algorithm against state-of-the-art (SOTA) baselines. While Sentence-BERT (an LLM) was used for feature extraction, a direct comparison with LLM-based ranking models was beyond the current scope, which aimed to understand how incumbent systems respond to a defined set of features.
+\item \textbf{Data Snapshot and Domain Specificity:} Data are from May 2025 for 500 English commercial discount queries and may not generalize.
+\item \textbf{Feature Scope:} Excluded factors include backlinks, detailed Core Web Vitals, user engagement, and domain-level authority signals. Observed anomalies might be partially explained by these unmeasured variables.
+\item \textbf{Tool and API Limitations:} Accuracy depends on tools like Trafilatura, Sentence-BERT, and APIs.
+\item \textbf{Causation vs. Correlation:} The study identifies associations, not causal links. Inferred priorities are based on observed patterns. Actual causal mechanisms are opaque and might be influenced by unmeasured confounders or complex feature interactions not explicitly modeled.
+\item \textbf{Interaction Effects:} Regression models did not explicitly include interaction terms. These could explain some complex patterns (e.g., title similarity's effect varying with content similarity). Future work should explore these.
+\item \textbf{Search Engine Intent Interpretation:} Engines might interpret user intent for similar queries differently, influencing attribute prioritization. This was not directly modeled.
+\item \textbf{Personalization and Localization:} Efforts to minimize these using default API settings might not entirely eliminate their influence.
+\item \textbf{Scope of Baseline Comparison:} This study focused on characterizing existing search engine behaviors rather than proposing and evaluating a new ranking algorithm against state-of-the-art (SOTA) baselines. While Sentence-BERT (an LLM) was used for feature extraction, a direct comparison with LLM-based ranking models was beyond the current scope, which aimed to understand how incumbent systems respond to a defined set of features.
 \end{itemize}
 These limitations offer avenues for future research.
 % --- END DISCUSSION ---
+
+
+
 
 % --- DATA AND CODE AVAILABILITY ---
 \section{Data and Code Availability}
@@ -760,10 +765,10 @@ This study empirically characterized and compared the ranking environments of Go
 \label{subsec:conclusion_summary}
 Key findings include:
 \begin{itemize}
-    \item \textbf{RQ1:} Six resource profiles emerged, differentiated primarily by query presence in titles/H1s and title-query semantic similarity.
-    \item \textbf{RQ2:} Resource profiles significantly associated with ranking tiers in both Google and Bing. Stronger content-relevant profiles were generally more prevalent in higher ranks.
-    \item \textbf{RQ3:} Bing's top-ranking pages generally exhibited higher median scores for most technical and content features compared to Google's. Profile distributions in top ranks also differed significantly.
-    \item \textbf{RQ4:} Content factors held greater aggregate importance than technical scores for both systems. Multivariate regression revealed distinct and complex priorities: For \textbf{Google}, strong predictors of better rank included main content semantic similarity and accessibility, while high title-query semantic similarity and a high SEO score were surprisingly associated with worse rank. For \textbf{Bing}, content volume ($word\_count$) was the most powerful predictor of better rank, while factors like performance score were unexpectedly associated with worse rank.
+\item \textbf{RQ1:} Six resource profiles emerged, differentiated primarily by query presence in titles/H1s and title-query semantic similarity.
+\item \textbf{RQ2:} Resource profiles significantly associated with ranking tiers in both Google and Bing. Stronger content-relevant profiles were generally more prevalent in higher ranks.
+\item \textbf{RQ3:} Bing's top-ranking pages generally exhibited higher median scores for most technical and content features compared to Google's. Profile distributions in top ranks also differed significantly.
+\item \textbf{RQ4:} Content factors held greater aggregate importance than technical scores for both systems. Multivariate regression revealed distinct and complex priorities: For \textbf{Google}, strong predictors of better rank included main content semantic similarity and accessibility, while high title-query semantic similarity and a high SEO score were surprisingly associated with worse rank. For \textbf{Bing}, content volume ($word\_count$) was the most powerful predictor of better rank, while factors like performance score were unexpectedly associated with worse rank.
 \end{itemize}
 
 \subsection{Concluding Remarks}
@@ -790,11 +795,11 @@ During the preparation of this work the author(s) used ChatGPT (OpenAI) and Gemi
 
 
 % For Google
-\begin{table}[htbp!] 
+\begin{table}[htbp!] 
 \centering
 \caption{Ordinal Logistic Regression for Predicting SERP Quintiles - Google (System A) (RQ4)}
 \label{app:rq4_regression_google}
-\small 
+\small 
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1}
 \begin{threeparttable}
@@ -805,24 +810,24 @@ During the preparation of this work the author(s) used ChatGPT (OpenAI) and Gemi
 \sbf{Predictor} & {\sbf{Coeff.}} & {\sbf{p-value}} & {\sbf{Coeff.}} & {\sbf{p-value}} & {\sbf{Coeff.}} & {\sbf{p-value}} \\
 \dmidrule
 \sit{Lighthouse Scores} & & & & & & \\
-Perf. & -0.064 & 0.016* & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.064 & 0.016* \\
-Access. & -0.208 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.208 & < .001*** \\
-Best Prac. & -0.018 & 0.490 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.018 & 0.490 \\
-SEO & 0.168 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.168 & < .001*** \\
+Perf. & -0.064 & 0.016* & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.029 & 0.294 \\
+Access. & -0.208 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.154 & < .001*** \\
+Best Prac. & -0.018 & 0.490 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.001 & 0.957 \\
+SEO & 0.168 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.201 & < .001*** \\
 \midrule
 \sit{Content Metrics} & & & & & & \\
-Q-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.070 & 0.041* & -0.070 & 0.041* \\
-Q-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.121 & < .001*** & -0.121 & < .001*** \\
-ExQ-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.044 & 0.238 & -0.044 & 0.238 \\
-ExQ-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.005 & 0.896 & 0.005 & 0.896 \\
-Q/B Density & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.040 & 0.122 & 0.040 & 0.122 \\
-Sim. Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.202 & < .001*** & 0.202 & < .001*** \\
-Sim. Content & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.485 & < .001*** & -0.485 & < .001*** \\
-Word Count & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.045 & 0.055 & 0.045 & 0.055 \\
+Q-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.070 & 0.041* & -0.079 & 0.021* \\
+Q-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.121 & < .001*** & -0.115 & < .001*** \\
+ExQ-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.044 & 0.238 & -0.032 & 0.392 \\
+ExQ-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.005 & 0.896 & 0.011 & 0.764 \\
+Q/B Density & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.040 & 0.122 & 0.009 & 0.726 \\
+Sim. Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.202 & < .001*** & 0.168 & < .001*** \\
+Sim. Content & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.485 & < .001*** & -0.475 & < .001*** \\
+Word Count & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.045 & 0.055 & 0.033 & 0.156 \\
 \midrule
-Pseudo $R^2$ & \multicolumn{2}{c}{0.0046} & \multicolumn{2}{c}{0.0194} & \multicolumn{2}{c}{0.0240} \\
-AIC & \multicolumn{2}{c}{18750.1} & \multicolumn{2}{c}{18480.5} & \multicolumn{2}{c}{18480.5} \\
-BIC & \multicolumn{2}{c}{18560.7} & \multicolumn{2}{c}{18560.7} & \multicolumn{2}{c}{18560.7} \\
+Pseudo $R^2$ & \multicolumn{2}{c}{0.0046} & \multicolumn{2}{c}{0.0194} & \multicolumn{2}{c}{0.0233} \\
+AIC & \multicolumn{2}{c}{18750.1} & \multicolumn{2}{c}{18480.5} & \multicolumn{2}{c}{18415.5} \\
+BIC & \multicolumn{2}{c}{18522.5} & \multicolumn{2}{c}{18560.7} & \multicolumn{2}{c}{18522.5} \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}[flushleft]
@@ -833,16 +838,15 @@ BIC & \multicolumn{2}{c}{18560.7} & \multicolumn{2}{c}{18560.7} & \multicolumn{2
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
-
 
 
 
 % For Bing
-\begin{table}[htbp!] 
+\begin{table}[htbp!] 
 \centering
 \caption{Ordinal Logistic Regression for Predicting SERP Quintiles - Bing (System B) (RQ4)}
 \label{app:rq4_regression_bing}
-\small 
+\small 
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1}
 \begin{threeparttable}
@@ -853,24 +857,24 @@ BIC & \multicolumn{2}{c}{18560.7} & \multicolumn{2}{c}{18560.7} & \multicolumn{2
 \sbf{Predictor} & {\sbf{Coeff.}} & {\sbf{p-value}} & {\sbf{Coeff.}} & {\sbf{p-value}} & {\sbf{Coeff.}} & {\sbf{p-value}} \\
 \dmidrule
 \sit{Lighthouse Scores} & & & & & & \\
-Perf. & 0.093 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.093 & < .001*** \\
-Access. & -0.339 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.339 & < .001*** \\
-Best Prac. & 0.026 & 0.223 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.026 & 0.223 \\
-SEO & -0.080 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.080 & < .001*** \\
+Perf. & 0.093 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.059 & 0.005** \\
+Access. & -0.339 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.358 & < .001*** \\
+Best Prac. & 0.026 & 0.223 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.017 & 0.415 \\
+SEO & -0.080 & < .001*** & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.029 & 0.180 \\
 \midrule
 \sit{Content Metrics} & & & & & & \\
-Q-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.078 & 0.003** & -0.078 & 0.003** \\
-Q-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.022 & 0.394 & 0.022 & 0.394 \\
-ExQ-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.064 & 0.024* & 0.064 & 0.024* \\
-ExQ-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.085 & 0.003** & -0.085 & 0.003** \\
-Q/B Density & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.036 & 0.079 & -0.036 & 0.079 \\
-Sim. Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.066 & 0.010** & -0.066 & 0.010** \\
-Sim. Content & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.093 & < .001*** & -0.093 & < .001*** \\
-Word Count & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -1.133 & < .001*** & -1.133 & < .001*** \\
+Q-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.078 & 0.003** & -0.082 & 0.002** \\
+Q-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.022 & 0.394 & 0.053 & 0.043* \\
+ExQ-Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & 0.064 & 0.024* & 0.056 & 0.047* \\
+ExQ-H1 & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.085 & 0.003** & -0.103 & < .001*** \\
+Q/B Density & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.036 & 0.079 & -0.042 & 0.038* \\
+Sim. Title & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.066 & 0.010** & -0.011 & 0.686 \\
+Sim. Content & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -0.093 & < .001*** & -0.109 & < .001*** \\
+Word Count & \multicolumn{1}{c}{--} & \multicolumn{1}{c}{--} & -1.133 & < .001*** & -1.165 & < .001*** \\
 \midrule
-Pseudo $R^2$ & \multicolumn{2}{c}{0.0131} & \multicolumn{2}{c}{0.0188} & \multicolumn{2}{c}{0.0319} \\
-AIC & \multicolumn{2}{c}{27222.5} & \multicolumn{2}{c}{27074.1} & \multicolumn{2}{c}{27074.1} \\
-BIC & \multicolumn{2}{c}{27158.8} & \multicolumn{2}{c}{27158.8} & \multicolumn{2}{c}{27158.8} \\
+Pseudo $R^2$ & \multicolumn{2}{c}{0.0131} & \multicolumn{2}{c}{0.0188} & \multicolumn{2}{c}{0.0310} \\
+AIC & \multicolumn{2}{c}{27222.5} & \multicolumn{2}{c}{27074.1} & \multicolumn{2}{c}{26745.8} \\
+BIC & \multicolumn{2}{c}{26858.7} & \multicolumn{2}{c}{27158.8} & \multicolumn{2}{c}{26858.7} \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}[flushleft]
@@ -883,17 +887,19 @@ BIC & \multicolumn{2}{c}{27158.8} & \multicolumn{2}{c}{27158.8} & \multicolumn{2
 \end{table}
 
 
+
+
 \afterpage{
-  \begin{sidewaysfigure}
-    \centering
-    \subsection{RQ4 - Spearman Correlation Heatmaps}
-    \label{app:rq4_correlation_heatmaps}
-    % \vspace*{-2cm}
-    % \hspace*{-4.5cm}
-    \includegraphics[width=1.1\textwidth,trim={2cm 0 2cm 0},clip]{figs/rq4_correlation_heatmaps_combined.png}
-    \caption{Spearman Correlation Heatmaps with SERP Position for Google (left) and Bing (right) (RQ4).}
-    \label{fig:rq4_correlation_heatmaps_combined_appendix}
-  \end{sidewaysfigure}
+\begin{sidewaysfigure}
+\centering
+\subsection{RQ4 - Spearman Correlation Heatmaps}
+\label{app:rq4_correlation_heatmaps}
+% \vspace*{-2cm}
+% \hspace*{-4.5cm}
+\includegraphics[width=1.1\textwidth,trim={2cm 0 2cm 0},clip]{figs/rq4_correlation_heatmaps_combined.png}
+\caption{Spearman Correlation Heatmaps with SERP Position for Google (left) and Bing (right) (RQ4).}
+\label{fig:rq4_correlation_heatmaps_combined_appendix}
+\end{sidewaysfigure}
 }
 
 
