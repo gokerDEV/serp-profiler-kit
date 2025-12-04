@@ -17,29 +17,6 @@ from urllib.parse import urlparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from src.lib.utils import Utils
 
-# List of well-known websites to filter out
-WELL_KNOWN_WEBSITES = {
-    # Social Media
-    'facebook.com', 'twitter.com', 'instagram.com', 'tiktok.com', 'pinterest.com',
-    'reddit.com', 'linkedin.com', 'tumblr.com', 'snapchat.com',
-    
-    # Video/Streaming
-    'youtube.com', 'vimeo.com', 'twitch.tv', 'netflix.com', 'dailymotion.com',
-    
-    # E-commerce
-    'amazon.com', 'ebay.com', 'walmart.com', 'aliexpress.com', 'etsy.com',
-    'shopify.com', 'target.com',
-    
-    # Tech
-    'github.com', 'stackoverflow.com', 'microsoft.com', 'apple.com', 'google.com',
-    
-    # Content/News
-    'medium.com', 'wordpress.com', 'blogger.com', 'cnn.com', 'bbc.com',
-    'nytimes.com', 'wikipedia.org',
-    
-    # Others
-    'quora.com', 'yelp.com', 'craigslist.org', 'imdb.com', 'spotify.com'
-}
 
 @dataclass
 class Result:
@@ -54,15 +31,33 @@ class DataCheck:
                  input_dir: str,
                  output_file: str,
                  exceptions_file: str,
+                 well_known_file: str,
                ):
         # Initialize paths
         self.input_file = input_file
         self.input_dir = input_dir
         self.output_file = output_file
         self.exceptions_file = exceptions_file
-
+        self.well_known_file = well_known_file
+        
+        self.well_known_websites = self._load_well_known_websites()
         # Log configuration
         self._log_initialization()
+        
+    # Load well-known websites from CSV file
+    def _load_well_known_websites(self) -> Set[str]:
+        well_known_websites: Set[str] = set()
+        if os.path.exists(self.well_known_file):
+            with open(self.well_known_file, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    domain = row.get('domain', '').strip()
+                    if domain:
+                        well_known_websites.add(domain)
+        else:
+            logging.warning(f"Well-known websites file not found: {self.well_known_file}")
+        
+        return well_known_websites
         
     def get_base_domain(self, url: str) -> str:
         """Extract base domain from URL, removing subdomains"""
@@ -105,7 +100,7 @@ class DataCheck:
                 break
         
         if not query_col:
-            self.logger.warning(f"No query column found in {self.input_file}. Available columns: {list(df.columns)}")
+            self.logger.warning(f"No query column found in {self.input_file}. Available columns: {list(self.df.columns)}")
             self.logger.warning("Proceeding without query information")
 
         # Count total entries before deduplication
@@ -156,7 +151,7 @@ class DataCheck:
                 base_domain = self.get_base_domain(url)
                 
                 # Check if it's a well-known website
-                if base_domain in WELL_KNOWN_WEBSITES:
+                if base_domain in self.well_known_websites:
                     self.stats['well_known_sites'] += 1
                     self.stats['well_known_breakdown'][base_domain] = self.stats['well_known_breakdown'].get(base_domain, 0) + 1
                     raise Exception(403, f"Well-known website detected: {base_domain}")
@@ -268,6 +263,8 @@ def main():
     parser.add_argument('--output', type=str, default='data/processed/accepted.csv', help='Output CSV file')
     parser.add_argument('--exceptions', type=str, default='data/exceptions/data_check.csv', 
                         help='CSV file to log exceptions')
+    parser.add_argument('--well_known', type=str, default='data/raw/well-known/well-known.csv', 
+                        help='Well-known websites file')
     args = parser.parse_args()
 
     data_check = DataCheck(      
@@ -275,6 +272,7 @@ def main():
         input_dir=args.input_dir,
         output_file=args.output,
         exceptions_file=args.exceptions,
+        well_known_file=args.well_known,
     )
 
     data_check.run()

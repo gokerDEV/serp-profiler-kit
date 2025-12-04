@@ -4,14 +4,19 @@ import pandas as pd
 import numpy as np
 import argparse
 from pathlib import Path
-import argparse
 import sys
+import cluster_labels
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from src.lib.utils import Utils 
+from src.lib.utils import Utils
+from src.generators.plot import PlotGenerator 
 
 
 class LatexTableGenerator:
+    
+    cluster_names = {k: v.replace('&', '\\&') for k, v in cluster_labels.CLUSTER_NAMES.items()}
+    cluster_colors = cluster_labels.CLUSTER_COLORS
+    
     def __init__(self, results_path: str, dataset_path: str, output_dir: str):
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
@@ -190,24 +195,7 @@ class LatexTableGenerator:
         if not self.stats:
             self.logger.error("Cannot generate tables due to missing analysis results.")
             return
-
-        # --- USER: Insert your manual mapping here if needed ---
-        # Example: self.correct_cluster_labels({0: 3, 1: 5, 2: 4, 3: 1, 4: 2, 5: 0})
-        # Uncomment and edit the line below as needed:
-        mapping = {0: 3, 1: 2, 2: 4, 3: 1, 4: 5, 5: 0}
-        self.stats, self.df = Utils.correct_cluster_labels(self.stats, self.df, mapping, self.logger)
-        
-        # Cluster labels based on mapping analysis
-        # mapping: {old: new} -> cluster_labels: {new: label}
-        self.cluster_names = {
-            '0': 'Balanced Profile',      
-            '1': 'Low Relevance',         
-            '2': 'Content Focused',       
-            '3': 'Low Relevance \& Poor Technicals',     
-            '4': 'High Relevance',        
-            '5': 'Technical Excellence'
-        }
-
+      
         self.generate_dataset_columns_table()
         self.generate_descriptive_statistics_table()
         self.generate_rq1_cluster_summary_table()
@@ -216,6 +204,7 @@ class LatexTableGenerator:
         self.generate_rq2_feature_rank_tests_table()
         self.generate_rq4_regression_tables()
         self.generate_rq1_cluster_quality_table()
+        self.generate_rq4_feature_importance_comparison_table()
         
         self.logger.info(f"All LaTeX tables/snippets generated in {self.output_dir}")
 
@@ -258,7 +247,7 @@ class LatexTableGenerator:
         # Generate LaTeX table
         latex = "\\begin{table}[htbp!]\n"
         latex += "\\centering\n"
-        latex += "\\caption{Mean Scaled Feature Values for the Six Identified Cluster Profiles (RQ1)}\n"
+        latex += "\\caption{Mean Scaled Feature Values for the Identified Cluster Profiles (RQ1)}\n"
         latex += "\\label{tab:rq1_cluster_summary}\n"
         latex += "\\small \n"
         latex += "\\setlength{\\tabcolsep}{3pt}\n"
@@ -280,7 +269,7 @@ class LatexTableGenerator:
         # Add cluster size and percentage
         latex += "\\midrule\n"
         latex += "Cluster Size (N) & "
-        size_values = " & ".join([f"{{{int(row['Size'])}}}" for _, row in df.iterrows()])
+        size_values = " & ".join([f"\\num{{{int(row['Size'])}}}" for _, row in df.iterrows()])
         latex += f"{size_values} \\\\\n"
         
         latex += "Percentage (\\%) & "
@@ -292,7 +281,8 @@ class LatexTableGenerator:
         latex += "\\end{tabular*}\n"
         latex += "\\begin{tablenotes}[flushleft]\n"
         latex += "\\scriptsize\n"
-        latex += "\\item Note: C0-C5 represent Cluster 0 to Cluster 5. Features were Min-Max scaled to [0,1].\n"
+        latex += ("\\item Note: C0, C1, C2, ... denote the K-means cluster labels "
+          "ordered by their numeric ID. Features were Min-Max scaled to [0,1].\n")
         latex += "\\item Metric abbreviations are defined in Table \\ref{tab:dataset_columns_types}.\n"
         latex += "\\end{tablenotes}\n"
         latex += "\\end{table}\n"
@@ -441,7 +431,7 @@ class LatexTableGenerator:
         latex += "\\setlength{\\tabcolsep}{3pt}\n"
         latex += "\\renewcommand{\\arraystretch}{1}\n"
         latex += "\\begin{threeparttable}\n"
-        latex += "\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}} S[table-format=5.3] S[table-format=1.3,table-comparator=true]}\n"
+        latex += "\\begin{tabular*}{\\columnwidth}{l@{\\extracolsep{\\fill}} S[table-format=5.3] S[table-format=1.3,table-comparator=true]}\n"
         latex += "\\toprule\n"
         latex += "\\sbf{Feature} & {\\sbf{H-statistic}} & {\\sbf{p-value}} \\\\\n"
         latex += "\\dmidrule\n"
@@ -465,7 +455,8 @@ class LatexTableGenerator:
         latex += "\\end{tabular*}\n"
         latex += "\\begin{tablenotes}[flushleft]\n"
         latex += "\\scriptsize\n"
-        latex += "\\item All p-values reported as $< .001$ were originally $0.0$ in the source data.\n"
+        latex += "\\item p-values smaller than $.001$ are reported as $< .001$.\n"
+        latex += "\\item Pairwise cluster differences were examined using Dunn's post-hoc tests with Bonferroni correction; only omnibus Kruskal--Wallis statistics are reported here.\n"
         latex += "\\item Metric abbreviations are defined in Table \\ref{tab:dataset_columns_types}.\n"
         latex += "\\end{tablenotes}\n"
         latex += "\\end{threeparttable}\n"
@@ -554,8 +545,8 @@ class LatexTableGenerator:
         latex += "\\end{tabular*}\n"
         latex += "\\begin{tablenotes}[flushleft]\n"
         latex += "\\scriptsize\n"
-        latex += "\\item Ranking Tiers: High (1-5), Medium (6-10), Low (11-20).\n"
-        latex += "\\item Dunn's test for post-hoc comparisons not shown here.\n"
+        latex += "\\item Ranking tiers: High (positions 1--5), Medium (6--10), Low (11--20).\n"
+        latex += "\\item For features with significant omnibus tests, pairwise high/medium/low differences were examined using Dunn's post-hoc tests with Bonferroni correction; only Kruskal--Wallis statistics are reported here.\n"
         latex += "\\item Metric abbreviations are defined in Table \\ref{tab:dataset_columns_types}.\n"
         latex += "\\end{tablenotes}\n"
         latex += "\\end{threeparttable}\n"
@@ -678,15 +669,17 @@ class LatexTableGenerator:
         latex += "\\midrule\n"
         latex += f"Pseudo $R^2$ & \\multicolumn{{2}}{{c}}{{{technical_r2:.4f}}} & \\multicolumn{{2}}{{c}}{{{content_r2:.4f}}} & \\multicolumn{{2}}{{c}}{{{combined_r2:.4f}}} \\\\\n"
         latex += f"AIC & \\multicolumn{{2}}{{c}}{{{technical_aic:.1f}}} & \\multicolumn{{2}}{{c}}{{{content_aic:.1f}}} & \\multicolumn{{2}}{{c}}{{{combined_aic:.1f}}} \\\\\n"
-        latex += f"BIC & \\multicolumn{{2}}{{c}}{{{combined_bic:.1f}}} & \\multicolumn{{2}}{{c}}{{{content_bic:.1f}}} & \\multicolumn{{2}}{{c}}{{{combined_bic:.1f}}} \\\\\n"
+        latex += f"BIC & \\multicolumn{{2}}{{c}}{{{technical_bic:.1f}}} & \\multicolumn{{2}}{{c}}{{{content_bic:.1f}}} & \\multicolumn{{2}}{{c}}{{{combined_bic:.1f}}} \\\\\n"
         
         # Finish table
         latex += "\\bottomrule\n"
         latex += "\\end{tabular*}\n"
         latex += "\\begin{tablenotes}[flushleft]\n"
         latex += "\\scriptsize\n"
-        latex += "\\item Dependent Variable: SERP Quintile (0=best, 4=worst). Negative coefficients indicate increased likelihood of better ranking.\n"
-        latex += "\\item * $p < .05$; ** $p < .01$; *** $p < .001$. Thresholds (cut-points) for quintiles are omitted. Predictors Min-Max scaled.\n"
+        latex += "\\item Dependent variable: SERP quintile (0=best, 4=worst). Negative coefficients indicate an increased likelihood of appearing in a better quintile.\n"
+        latex += "\\item * $p < .05$; ** $p < .01$; *** $p < .001$. Thresholds (cut-points) for quintiles are omitted. Predictors were normalized using Min-Max scaling prior to estimation.\n"
+        latex += "\\item Proportional odds (parallel lines) assumption was tested for all models using a Brant-type likelihood-ratio test; no violations were detected (all $p > .05$).\n"
+        latex += "\\item Omnibus Kruskal--Wallis tests and Dunn's post-hoc comparisons across ranking tiers are reported in Table~\\ref{tab:rq2_kruskal_wallis_ranks}.\n"
         latex += "\\item Metric abbreviations are defined in Table \\ref{tab:dataset_columns_types}.\n"
         latex += "\\end{tablenotes}\n"
         latex += "\\end{threeparttable}\n"
@@ -694,29 +687,129 @@ class LatexTableGenerator:
         
         return latex
 
+    def _format_p_value(self, p_value: float) -> str:
+        """Helper function to format p-values with significance markers"""
+        if p_value < 0.001:
+            return "< .001***"
+        elif p_value < 0.01:
+            return f"{p_value:.3f}**"
+        elif p_value < 0.05:
+            return f"{p_value:.3f}*"
+        else:
+            return f"{p_value:.3f}"
+
+    def _add_engine_section(self, latex: str, engine_name: str, engine_data: dict) -> str:
+        """Helper function to add a section for one engine (Google or Bing) to the combined table"""
+        engine_label = "Google" if engine_name == "google" else "Bing"
+        
+        # Technical features section
+        technical_features = ['performance_score', 'accessibility_score', 'best-practices_score', 'seo_score']
+        latex += f"\\multicolumn{{3}}{{l}}{{\\sit{{Lighthouse Scores ({engine_label})}}}}  \\\\\n"
+        
+        for feature in technical_features:
+            if feature in engine_data['ordinal_logistic_regression']['technical']['coeffs']:
+                tech_coeff = engine_data['ordinal_logistic_regression']['technical']['coeffs'][feature]
+                tech_p_value = engine_data['ordinal_logistic_regression']['technical']['p_values'][feature]
+                combined_coeff = engine_data['ordinal_logistic_regression']['combined']['coeffs'][feature]
+                combined_p_value = engine_data['ordinal_logistic_regression']['combined']['p_values'][feature]
+                
+                tech_p_str = self._format_p_value(tech_p_value)
+                combined_p_str = self._format_p_value(combined_p_value)
+                
+                display_name = self.feature_display_names.get(feature, feature)
+                latex += f"{display_name} & {tech_coeff:.3f} & {tech_p_str} & \\multicolumn{{1}}{{c}}{{--}} & \\multicolumn{{1}}{{c}}{{--}} & {combined_coeff:.3f} & {combined_p_str} \\\\\n"
+        
+        # Content features section
+        content_features = ['query_in_title', 'query_in_h1', 'exact_query_in_title', 'exact_query_in_h1', 
+                          'query_density_body', 'semantic_similarity_title_query', 'semantic_similarity_content_query', 'word_count']
+        latex += "\\midrule\n"
+        latex += f"\\multicolumn{{3}}{{l}}{{\\sit{{Content Metrics ({engine_label})}}}}  \\\\\n"
+        
+        for feature in content_features:
+            if feature in engine_data['ordinal_logistic_regression']['content']['coeffs']:
+                content_coeff = engine_data['ordinal_logistic_regression']['content']['coeffs'][feature]
+                content_p_value = engine_data['ordinal_logistic_regression']['content']['p_values'][feature]
+                combined_coeff = engine_data['ordinal_logistic_regression']['combined']['coeffs'][feature]
+                combined_p_value = engine_data['ordinal_logistic_regression']['combined']['p_values'][feature]
+                
+                content_p_str = self._format_p_value(content_p_value)
+                combined_p_str = self._format_p_value(combined_p_value)
+                
+                display_name = self.feature_display_names.get(feature, feature)
+                latex += f"{display_name} & \\multicolumn{{1}}{{c}}{{--}} & \\multicolumn{{1}}{{c}}{{--}} & {content_coeff:.3f} & {content_p_str} & {combined_coeff:.3f} & {combined_p_str} \\\\\n"
+        
+        # Model fit measures
+        technical_r2 = engine_data['ordinal_logistic_regression']['technical']['pseudo_r2']
+        content_r2 = engine_data['ordinal_logistic_regression']['content']['pseudo_r2']
+        combined_r2 = engine_data['ordinal_logistic_regression']['combined']['pseudo_r2']
+        
+        technical_aic = engine_data['ordinal_logistic_regression']['technical']['aic']
+        content_aic = engine_data['ordinal_logistic_regression']['content']['aic']
+        combined_aic = engine_data['ordinal_logistic_regression']['combined']['aic']
+        
+        technical_bic = engine_data['ordinal_logistic_regression']['technical']['bic']
+        content_bic = engine_data['ordinal_logistic_regression']['content']['bic']
+        combined_bic = engine_data['ordinal_logistic_regression']['combined']['bic']
+        
+        latex += "\\midrule\n"
+        latex += f"Pseudo $R^2$ & \\multicolumn{{2}}{{c}}{{{technical_r2:.4f}}} & \\multicolumn{{2}}{{c}}{{{content_r2:.4f}}} & \\multicolumn{{2}}{{c}}{{{combined_r2:.4f}}} \\\\\n"
+        latex += f"AIC & \\multicolumn{{2}}{{c}}{{\\num{{{technical_aic:.1f}}}}} & \\multicolumn{{2}}{{c}}{{\\num{{{content_aic:.1f}}}}} & \\multicolumn{{2}}{{c}}{{\\num{{{combined_aic:.1f}}}}} \\\\\n"
+        latex += f"BIC & \\multicolumn{{2}}{{c}}{{\\num{{{technical_bic:.1f}}}}} & \\multicolumn{{2}}{{c}}{{\\num{{{content_bic:.1f}}}}} & \\multicolumn{{2}}{{c}}{{\\num{{{combined_bic:.1f}}}}} \\\\\n"
+        latex += "\\bottomrule\n"
+        
+        return latex
+
     def generate_rq4_regression_tables(self):
-        """Generate the RQ4 regression tables (Google and Bing) using helper function"""
-        self.logger.info("Generating RQ4 Regression LaTeX tables...")
+        """Generate the combined RQ4 regression table (Google and Bing together)"""
+        self.logger.info("Generating RQ4 Combined Regression LaTeX table...")
         
         if 'rq4_factors' not in self.stats:
             self.logger.warning("RQ4 factors data not found.")
             return
         
-        # Generate Google regression table
-        if 'google' in self.stats['rq4_factors']:
-            latex_google = self._generate_regression_table("google", self.stats['rq4_factors']['google'])
-            output_path_google = os.path.join(self.output_dir, 'table_rq4_regression_google.tex')
-            with open(output_path_google, 'w') as f:
-                f.write(latex_google)
-            self.logger.info(f"RQ4 Regression LaTeX table for Google generated at {output_path_google}")
+        google_data = self.stats['rq4_factors'].get('google')
+        bing_data = self.stats['rq4_factors'].get('bing')
         
-        # Generate Bing regression table
-        if 'bing' in self.stats['rq4_factors']:
-            latex_bing = self._generate_regression_table("bing", self.stats['rq4_factors']['bing'])
-            output_path_bing = os.path.join(self.output_dir, 'table_rq4_regression_bing.tex')
-            with open(output_path_bing, 'w') as f:
-                f.write(latex_bing)
-            self.logger.info(f"RQ4 Regression LaTeX table for Bing generated at {output_path_bing}")
+        if not google_data or not bing_data:
+            self.logger.warning("Both Google and Bing data required for combined table.")
+            return
+        
+        # Start building the combined table
+        latex = "\\begin{table*}[htbp!]\n"
+        latex += "\\centering\n"
+        latex += "\\caption{Ordinal Logistic Regression for Predicting SERP Quintiles (RQ4)}\n"
+        latex += "\\label{tab:rq4_regression}\n"
+        latex += "\\small\n"
+        latex += "\\setlength{\\tabcolsep}{3pt}\n"
+        latex += "\\renewcommand{\\arraystretch}{1}\n"
+        latex += "\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}} S[table-format=-1.3,table-space-text-post={***}] S[table-format=1.3,table-comparator=true,table-space-text-post={***}] S[table-format=-1.3,table-space-text-post={***}] S[table-format=1.3,table-comparator=true,table-space-text-post={***}] S[table-format=-1.3,table-space-text-post={***}] S[table-format=1.3,table-comparator=true,table-space-text-post={***}]}\n"
+        latex += "\\toprule\n"
+        latex += "& \\multicolumn{2}{c}{\\sbf{Technical Model}} & \\multicolumn{2}{c}{\\sbf{Content Model}} & \\multicolumn{2}{c}{\\sbf{Combined Model}} \\\\\n"
+        latex += "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5} \\cmidrule(lr){6-7}\n"
+        latex += "\\sbf{Predictor} & {\\sbf{Coeff.}} & {\\sbf{p-value}} & {\\sbf{Coeff.}} & {\\sbf{p-value}} & {\\sbf{Coeff.}} & {\\sbf{p-value}} \\\\\n"
+        latex += "\\dmidrule\n"
+        
+        # Add Google section
+        latex = self._add_engine_section(latex, "google", google_data)
+        
+        # Add Bing section
+        latex = self._add_engine_section(latex, "bing", bing_data)
+        
+        # Finish table
+        latex += "\\end{tabular*}\n"
+        latex += "\\begin{tablenotes}[flushleft]\n"
+        latex += "\\scriptsize\n"
+        latex += "\\item Dependent Variable: SERP Quintile (0=best, 4=worst). Negative coefficients indicate increased likelihood of better ranking. * $p < .05$; ** $p < .01$; *** $p < .001$. Thresholds (cut-points) for quintiles are omitted. Predictors were standardised prior to estimation.\n"
+        latex += "\\item Proportional odds (parallel lines) assumption was tested for all models using a Brant-type likelihood-ratio test; no violations were detected (all p > .05).\n"
+        latex += "\\end{tablenotes}\n"
+        latex += "\\end{table*}\n"
+        
+        # Write to file
+        output_path = os.path.join(self.output_dir, 'table_rq4_regression.tex')
+        with open(output_path, 'w') as f:
+            f.write(latex)
+        
+        self.logger.info(f"RQ4 Combined Regression LaTeX table generated at {output_path}")
 
     def generate_rq1_cluster_quality_table(self):
         """Generate the RQ1 cluster quality metrics table dynamically from JSON data"""
@@ -735,7 +828,7 @@ class LatexTableGenerator:
         per_cluster_wcss = final_results.get('per_cluster_wcss', {})
         
         # Generate LaTeX table
-        latex = "\\begin{table}[htbp!]\n"
+        latex = "\\begin{table*}[htbp!]\n"
         latex += "\\centering\n"
         latex += "\\caption{Identified Cluster Quality and Cohesion Metrics (RQ1)}\n"
         latex += "\\label{tab:cluster_quality}\n"
@@ -743,9 +836,9 @@ class LatexTableGenerator:
         latex += "\\setlength{\\tabcolsep}{3pt}\n"
         latex += "\\renewcommand{\\arraystretch}{1}\n"
         latex += "\\begin{threeparttable}\n"
-        latex += "\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}} S[table-format=4.0] S[table-format=2.1] S[table-format=1.3] S[table-format=6.1]}\n"
+        latex += "\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}} S[table-format=4.0] S[table-format=2.1] S[table-format=1.3] S[table-format=6.1] l}\n"
         latex += "\\toprule\n"
-        latex += "\\sbf{Cluster Profile} & {\\sbf{Cluster Size (N)}} & {\\sbf{Percentage (\\%)}} & {\\sbf{Mean Silhouette Score}} & {\\sbf{WCSS}} \\\\\n"
+        latex += "\\sbf{Cluster Profile} & {\\sbf{Cluster Size (N)}} & {\\sbf{Percentage (\\%)}} & {\\sbf{Mean Silhouette Score}} & {\\sbf{WCSS}} & {\\sbf{Color}} \\\\\n"
         latex += "\\dmidrule\n"
         
         # Sort clusters by their new numbers (after mapping)
@@ -761,6 +854,7 @@ class LatexTableGenerator:
             percentage = (size / total_size * 100)
             # Use cluster names from mapping
             name = self.cluster_names.get(cluster_key, f'C{cluster_key}')
+            color = self.cluster_colors.get(cluster_key, f'C{cluster_key}')
             
             # Get silhouette score for this cluster (after mapping)
             silhouette = per_cluster_silhouette.get(f'cluster_{cluster_key}', 0.0)
@@ -768,22 +862,28 @@ class LatexTableGenerator:
             # Get WCSS for this cluster
             wcss = per_cluster_wcss.get(f'cluster_{cluster_key}', 0.0)
             
-            latex += f"C{cluster_key}: {name} & {size} & {percentage:.1f} & {silhouette:.3f} & {wcss:.1f} \\\\\n"
+            latex += f"C{cluster_key}: {name} & {size} & {percentage:.1f} & {silhouette:.3f} & {wcss:.1f} & {color} \\\\\n"
         
         # Add overall/average row
         total_wcss = sum(per_cluster_wcss.get(f'cluster_{cluster_key}', 0.0) for cluster_key, _ in sorted_cluster_data)
         latex += "\\midrule\n"
-        latex += f"\\sbf{{Overall / Average}} & \\sbf{{{total_size}}} & \\sbf{{100.0}} & \\sbf{{{overall_silhouette:.3f}}} & \\sbf{{{total_wcss:.1f}}} \\\\\n"
+        latex += f"Overall / Average & {total_size} & 100.0 & {overall_silhouette:.3f} & {total_wcss:.1f} \\\\\n"
+        
+        davies_score = final_results.get('davies_bouldin_score', 0.0)
+        calinski_score = final_results.get('calinski_harabasz_score', 0.0)
         
         # Finish table
         latex += "\\bottomrule\n"
         latex += "\\end{tabular*}\n"
         latex += "\\begin{tablenotes}[flushleft]\n"
         latex += "\\scriptsize\n"
-        latex += "\\item Note: Higher Silhouette scores indicate better-defined clusters. Lower WCSS indicates tighter clusters. Cluster sizes are from Table \\ref{tab:rq1_cluster_summary}.\n"
+        latex += ("\\item Higher silhouette scores (range $[-1, 1]$) indicate more cohesive and well-separated clusters. "
+          "Cluster sizes correspond to Table~\\ref{tab:rq1_cluster_summary}.\n")
+        latex += (f"\\item Global validation metrics: Davies--Bouldin index = {davies_score:.3f} (lower is better), "
+                f"Calinski--Harabasz score = \\num{{{calinski_score:.1f}}} (higher is better).\n")
         latex += "\\end{tablenotes}\n"
         latex += "\\end{threeparttable}\n"
-        latex += "\\end{table}\n"
+        latex += "\\end{table*}\n"
         
         # Write to file
         output_path = os.path.join(self.output_dir, 'table_rq1_cluster_quality.tex')
@@ -791,6 +891,155 @@ class LatexTableGenerator:
             f.write(latex)
         
         self.logger.info(f"RQ1 Cluster Quality Metrics LaTeX table generated at {output_path}")
+
+    def generate_rq4_feature_importance_comparison_table(self):
+        """Generate the RQ4 Feature Importance Comparison table (Combined Regression Coefficients and RF Importance)"""
+        self.logger.info("Generating RQ4 Feature Importance Comparison LaTeX table...")
+        
+        if 'rq4_factors' not in self.stats:
+            self.logger.warning("RQ4 factors data not found.")
+            return
+        
+        google_data = self.stats['rq4_factors'].get('google')
+        bing_data = self.stats['rq4_factors'].get('bing')
+        
+        if not google_data or not bing_data:
+            self.logger.warning("Both Google and Bing data required for feature importance comparison table.")
+            return
+        
+        # Get combined model coefficients
+        google_coeffs = google_data.get('ordinal_logistic_regression', {}).get('combined', {}).get('coeffs', {})
+        bing_coeffs = bing_data.get('ordinal_logistic_regression', {}).get('combined', {}).get('coeffs', {})
+        
+        # Get RF importance scores
+        google_rf = google_data.get('feature_importance_rf_stats', {}).get('all_factors', {})
+        bing_rf = bing_data.get('feature_importance_rf_stats', {}).get('all_factors', {})
+        
+        # Get p-values for significance markers
+        google_p_values = google_data.get('ordinal_logistic_regression', {}).get('combined', {}).get('p_values', {})
+        bing_p_values = bing_data.get('ordinal_logistic_regression', {}).get('combined', {}).get('p_values', {})
+        
+        # Get all features (union of both engines)
+        all_features = set(google_coeffs.keys()) | set(bing_coeffs.keys())
+        # Remove threshold keys (like "0/1", "1/2", etc.)
+        all_features = {f for f in all_features if '/' not in str(f)}
+        
+        # Sort features: technical first, then content
+        technical_features = ['performance_score', 'accessibility_score', 'best-practices_score', 'seo_score']
+        content_features = ['query_in_title', 'query_in_h1', 'exact_query_in_title', 'exact_query_in_h1',
+                          'query_density_body', 'semantic_similarity_title_query', 'semantic_similarity_content_query', 'word_count']
+        
+        # Order features
+        ordered_features = []
+        for feat in technical_features:
+            if feat in all_features:
+                ordered_features.append(feat)
+        for feat in content_features:
+            if feat in all_features:
+                ordered_features.append(feat)
+        
+        # Generate LaTeX table
+        latex = "\\begin{table*}[htbp!]\n"
+        latex += "\\centering\n"
+        latex += "\\caption{Feature Importance Comparison: Combined Model Regression Coefficients and Random Forest Importance Scores (RQ4)}\n"
+        latex += "\\label{tab:rq4_feature_importance_comparison}\n"
+        latex += "\\small\n"
+        latex += "\\setlength{\\tabcolsep}{3pt}\n"
+        latex += "\\renewcommand{\\arraystretch}{1}\n"
+        latex += "\\begin{threeparttable}\n"
+        latex += "\\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}} S[table-format=-1.3,table-space-text-post={***}] S[table-format=1.3] S[table-format=-1.3,table-space-text-post={***}] S[table-format=1.3]}\n"
+        latex += "\\toprule\n"
+        latex += "& \\multicolumn{2}{c}{\\sbf{Google (System A)}} & \\multicolumn{2}{c}{\\sbf{Bing (System B)}} \\\\\n"
+        latex += "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}\n"
+        latex += "\\sbf{Feature} & {\\sbf{Combined Coeff.}} & {\\sbf{RF Importance}} & {\\sbf{Combined Coeff.}} & {\\sbf{RF Importance}} \\\\\n"
+        latex += "\\dmidrule\n"
+        
+        # Lighthouse scores section
+        latex += "\\sit{Lighthouse Scores} & & & & \\\\\n"
+        
+        for feature in ordered_features:
+            if feature in technical_features:
+                google_coeff = google_coeffs.get(feature, 0.0)
+                bing_coeff = bing_coeffs.get(feature, 0.0)
+                google_rf_imp = google_rf.get(feature, 0.0)
+                bing_rf_imp = bing_rf.get(feature, 0.0)
+                
+                # Format coefficients with significance markers
+                google_p = google_p_values.get(feature, 1.0)
+                bing_p = bing_p_values.get(feature, 1.0)
+                
+                google_coeff_str = f"{google_coeff:.3f}"
+                if google_p < 0.001:
+                    google_coeff_str += "***"
+                elif google_p < 0.01:
+                    google_coeff_str += "**"
+                elif google_p < 0.05:
+                    google_coeff_str += "*"
+                
+                bing_coeff_str = f"{bing_coeff:.3f}"
+                if bing_p < 0.001:
+                    bing_coeff_str += "***"
+                elif bing_p < 0.01:
+                    bing_coeff_str += "**"
+                elif bing_p < 0.05:
+                    bing_coeff_str += "*"
+                
+                display_name = self.feature_display_names.get(feature, feature)
+                latex += f"{display_name} & {google_coeff_str} & {google_rf_imp:.3f} & {bing_coeff_str} & {bing_rf_imp:.3f} \\\\\n"
+        
+        # Content metrics section
+        latex += "\\midrule\n"
+        latex += "\\sit{Content Relevance Metrics} & & & & \\\\\n"
+        
+        for feature in ordered_features:
+            if feature in content_features:
+                google_coeff = google_coeffs.get(feature, 0.0)
+                bing_coeff = bing_coeffs.get(feature, 0.0)
+                google_rf_imp = google_rf.get(feature, 0.0)
+                bing_rf_imp = bing_rf.get(feature, 0.0)
+                
+                # Format coefficients with significance markers
+                google_p = google_p_values.get(feature, 1.0)
+                bing_p = bing_p_values.get(feature, 1.0)
+                
+                google_coeff_str = f"{google_coeff:.3f}"
+                if google_p < 0.001:
+                    google_coeff_str += "***"
+                elif google_p < 0.01:
+                    google_coeff_str += "**"
+                elif google_p < 0.05:
+                    google_coeff_str += "*"
+                
+                bing_coeff_str = f"{bing_coeff:.3f}"
+                if bing_p < 0.001:
+                    bing_coeff_str += "***"
+                elif bing_p < 0.01:
+                    bing_coeff_str += "**"
+                elif bing_p < 0.05:
+                    bing_coeff_str += "*"
+                
+                display_name = self.feature_display_names.get(feature, feature)
+                latex += f"{display_name} & {google_coeff_str} & {google_rf_imp:.3f} & {bing_coeff_str} & {bing_rf_imp:.3f} \\\\\n"
+        
+        # Finish table
+        latex += "\\bottomrule\n"
+        latex += "\\end{tabular*}\n"
+        latex += "\\begin{tablenotes}[flushleft]\n"
+        latex += "\\scriptsize\n"
+        latex += "\\item Combined Coeff.: Coefficients from the Combined Ordinal Logistic Regression model (see Table \\ref{tab:rq4_regression}). Negative coefficients indicate increased likelihood of better ranking.\n"
+        latex += "\\item RF Importance: Random Forest feature importance scores (normalized to sum to 1.0). Higher values indicate greater predictive importance.\n"
+        latex += "\\item Significance markers: * $p < .05$; ** $p < .01$; *** $p < .001$.\n"
+        latex += "\\item Metric abbreviations are defined in Table \\ref{tab:dataset_columns_types}.\n"
+        latex += "\\end{tablenotes}\n"
+        latex += "\\end{threeparttable}\n"
+        latex += "\\end{table*}\n"
+        
+        # Write to file
+        output_path = os.path.join(self.output_dir, 'table_rq4_feature_importance_comparison.tex')
+        with open(output_path, 'w') as f:
+            f.write(latex)
+        
+        self.logger.info(f"RQ4 Feature Importance Comparison LaTeX table generated at {output_path}")
 
 
 if __name__ == '__main__':

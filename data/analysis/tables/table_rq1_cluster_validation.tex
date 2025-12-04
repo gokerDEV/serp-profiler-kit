@@ -6,27 +6,28 @@
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1}
 \begin{threeparttable}
-\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=5.3] S[table-format=1.3,table-comparator=true]}
+\begin{tabular*}{\columnwidth}{l@{\extracolsep{\fill}} S[table-format=5.3] S[table-format=1.3,table-comparator=true]}
 \toprule
 \sbf{Feature} & {\sbf{H-statistic}} & {\sbf{p-value}} \\
 \dmidrule
-Perf.  & 232.613 & < .001 \\
-Access.  & 920.863 & < .001 \\
-Best Prac.  & 171.951 & < .001 \\
-SEO  & 1756.283 & < .001 \\
+Perf.  & 179.859 & < .001 \\
+Access.  & 273.348 & < .001 \\
+Best Prac.  & 51.488 & < .001 \\
+SEO  & 639.557 & < .001 \\
 Q-Title  & 14464.000 & < .001 \\
 Q-H1  & 14464.000 & < .001 \\
 ExQ-Title  & 12798.195 & < .001 \\
 ExQ-H1  & 9102.510 & < .001 \\
-Q/B Density  & 4388.283 & < .001 \\
-Sim. Title  & 7561.791 & < .001 \\
-Sim. Content  & 4641.727 & < .001 \\
-Word Count  & 2015.283 & < .001 \\
+Q/B Density  & 4195.574 & < .001 \\
+Sim. Title  & 4828.883 & < .001 \\
+Sim. Content  & 1438.581 & < .001 \\
+Word Count  & 582.283 & < .001 \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}[flushleft]
 \scriptsize
-\item All p-values reported as $< .001$ were originally $0.0$ in the source data.
+\item p-values smaller than $.001$ are reported as $< .001$.
+\item Pairwise cluster differences were examined using Dunn's post-hoc tests with Bonferroni correction; only omnibus Kruskal--Wallis statistics are reported here.
 \item Metric abbreviations are defined in Table \ref{tab:dataset_columns_types}.
 \end{tablenotes}
 \end{threeparttable}

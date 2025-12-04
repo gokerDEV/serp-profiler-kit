@@ -1,0 +1,40 @@
+\begin{table*}[htbp!]
+\centering
+\caption{Feature Importance Comparison: Combined Model Regression Coefficients and Random Forest Importance Scores (RQ4)}
+\label{tab:rq4_feature_importance_comparison}
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1}
+\begin{threeparttable}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=-1.3,table-space-text-post={***}] S[table-format=1.3] S[table-format=-1.3,table-space-text-post={***}] S[table-format=1.3]}
+\toprule
+& \multicolumn{2}{c}{\sbf{Google (System A)}} & \multicolumn{2}{c}{\sbf{Bing (System B)}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\sbf{Feature} & {\sbf{Combined Coeff.}} & {\sbf{RF Importance}} & {\sbf{Combined Coeff.}} & {\sbf{RF Importance}} \\
+\dmidrule
+\sit{Lighthouse Scores} & & & & \\
+Perf. & 0.160 & 0.126 & 0.496*** & 0.114 \\
+Access. & -1.388*** & 0.094 & -2.513*** & 0.158 \\
+Best Prac. & 0.022 & 0.042 & 0.024 & 0.077 \\
+SEO & 1.385*** & 0.037 & -0.303 & 0.034 \\
+\midrule
+\sit{Content Relevance Metrics} & & & & \\
+Q-Title & -0.066 & 0.008 & -0.170** & 0.010 \\
+Q-H1 & -0.325*** & 0.011 & 0.120* & 0.013 \\
+ExQ-Title & -0.132 & 0.004 & 0.132 & 0.005 \\
+ExQ-H1 & 0.028 & 0.003 & -0.291*** & 0.005 \\
+Q/B Density & 0.255 & 0.035 & -0.624* & 0.042 \\
+Sim. Title & 0.325 & 0.203 & 0.101 & 0.167 \\
+Sim. Content & -2.397*** & 0.212 & -0.071 & 0.147 \\
+Word Count & 1.452*** & 0.225 & -3.736*** & 0.228 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}[flushleft]
+\scriptsize
+\item Combined Coeff.: Coefficients from the Combined Ordinal Logistic Regression model (see Table \ref{tab:rq4_regression}). Negative coefficients indicate increased likelihood of better ranking.
+\item RF Importance: Random Forest feature importance scores (normalized to sum to 1.0). Higher values indicate greater predictive importance.
+\item Significance markers: * $p < .05$; ** $p < .01$; *** $p < .001$.
+\item Metric abbreviations are defined in Table \ref{tab:dataset_columns_types}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table*}

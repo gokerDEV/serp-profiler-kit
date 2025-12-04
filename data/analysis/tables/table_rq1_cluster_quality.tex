@@ -1,4 +1,4 @@
-\begin{table}[htbp!]
+\begin{table*}[htbp!]
 \centering
 \caption{Identified Cluster Quality and Cohesion Metrics (RQ1)}
 \label{tab:cluster_quality}
@@ -6,23 +6,23 @@
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1}
 \begin{threeparttable}
-\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=4.0] S[table-format=2.1] S[table-format=1.3] S[table-format=6.1]}
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=4.0] S[table-format=2.1] S[table-format=1.3] S[table-format=6.1] l}
 \toprule
-\sbf{Cluster Profile} & {\sbf{Cluster Size (N)}} & {\sbf{Percentage (\%)}} & {\sbf{Mean Silhouette Score}} & {\sbf{WCSS}} \\
+\sbf{Cluster Profile} & {\sbf{Cluster Size (N)}} & {\sbf{Percentage (\%)}} & {\sbf{Mean Silhouette Score}} & {\sbf{WCSS}} & {\sbf{Color}} \\
 \dmidrule
-C0: Balanced Profile & 1054 & 7.3 & 0.493 & 484.8 \\
-C1: Low Relevance & 5142 & 35.5 & 0.451 & 532.5 \\
-C2: Content Focused & 2122 & 14.7 & 0.544 & 439.2 \\
-C3: Low Relevance \& Poor Technicals & 2314 & 16.0 & 0.222 & 569.7 \\
-C4: High Relevance & 1522 & 10.5 & 0.444 & 485.6 \\
-C5: Technical Excellence & 2311 & 16.0 & 0.521 & 252.9 \\
+C0: Baseline – Non-Targeted & 7456 & 51.5 & 0.497 & 1718.0 & Blue \\
+C1: Exact-Match Title \& H1 & 2122 & 14.7 & 0.536 & 548.1 & Purple \\
+C2: Semantic Title \& H1 & 2311 & 16.0 & 0.508 & 506.3 & Pink \\
+C3: H1-Focused Dense Content & 1054 & 7.3 & 0.503 & 256.8 & Yellow \\
+C4: Title-Focused Compact Content & 1522 & 10.5 & 0.449 & 453.4 & Orange \\
 \midrule
-\sbf{Overall / Average} & \sbf{14465} & \sbf{100.0} & \sbf{0.442} & \sbf{2764.5} \\
+Overall / Average & 14465 & 100.0 & 0.500 & 3482.7 \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}[flushleft]
 \scriptsize
-\item Note: Higher Silhouette scores indicate better-defined clusters. Lower WCSS indicates tighter clusters. Cluster sizes are from Table \ref{tab:rq1_cluster_summary}.
+\item Higher silhouette scores (range $[-1, 1]$) indicate more cohesive and well-separated clusters. Cluster sizes correspond to Table~\ref{tab:rq1_cluster_summary}.
+\item Global validation metrics: Davies--Bouldin index = 0.844 (lower is better), Calinski--Harabasz score = \num{10464.6} (higher is better).
 \end{tablenotes}
 \end{threeparttable}
-\end{table}
+\end{table*}

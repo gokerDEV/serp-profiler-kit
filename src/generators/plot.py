@@ -11,6 +11,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
+import cluster_labels
 
 # Add the parent directory to the path to import Utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -67,6 +68,9 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
     return ax.add_patch(ellipse)
 
 class PlotGenerator:
+    
+    cluster_names = cluster_labels.CLUSTER_NAMES
+
     def __init__(self, results_path: str, dataset_path: str, output_dir: str):
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
@@ -126,23 +130,6 @@ class PlotGenerator:
         ]
 
     def generate_all_plots(self):
-        """Generates all plots based on the analysis results, respecting original styles."""
-        # --- USER: Insert your manual mapping here if needed ---
-        # Example: self.correct_cluster_labels({0: 3, 1: 5, 2: 4, 3: 1, 4: 2, 5: 0})
-        # Uncomment and edit the line below as needed:
-        mapping = {0: 3, 1: 2, 2: 4, 3: 1, 4: 5, 5: 0}
-        self.stats, self.df = Utils.correct_cluster_labels(self.stats, self.df, mapping, self.logger)
-        
-        # Cluster labels based on mapping analysis (same as table.py)
-        # mapping: {old: new} -> cluster_labels: {new: label}
-        self.cluster_names = {
-            '0': 'Balanced Profile',      
-            '1': 'Low Relevance',         
-            '2': 'Content Focused',       
-            '3': 'Mixed Performance',     
-            '4': 'High Relevance',        
-            '5': 'Technical Excellence'   
-        }
         
         if not self.stats or self.df is None:
             self.logger.error("Cannot generate plots due to missing data or analysis results.")
@@ -196,7 +183,7 @@ class PlotGenerator:
         silhouette_values = [silhouette_scores[str(k)] for k in k_values_sil]
         
         # Create the plot
-        fig, ax1 = plt.subplots(figsize=(12, 4))
+        fig, ax1 = plt.subplots(figsize=(12, 3))
         
         # Add gray grid lines for better tracking of y-values
         ax1.grid(axis='y', linestyle='--', alpha=0.3, color='gray')
@@ -206,20 +193,23 @@ class PlotGenerator:
         silhouette_color = self.sunset_sunrise_palette[-2]  # Red (second to last)
         
         ax1.set_xlabel('Number of Clusters (K)')
-        ax1.set_ylabel('Within-Cluster Sum of Squares (WCSS)', color=wcss_color)
+        ax1.set_ylabel('WCSS', color=wcss_color)
+        # ax1.set_ylabel('Within-Cluster Sum of Squares (WCSS)', color=wcss_color)
         ax1.plot(k_values_wcss, wcss_values, marker='o', color=wcss_color, label='WCSS (Elbow)')
         ax1.tick_params(axis='y', labelcolor=wcss_color)
-        ax1.set_ylim(bottom=min(wcss_values)*0.95 if wcss_values else 0, top=8000) # Set WCSS y-axis limit
+        # ax1.set_ylim(bottom=500, top=8000) # Set WCSS y-axis limit
+        # ax1.set_ylim(bottom=min(wcss_values)*0.95 if wcss_values else 0, top=9000) # Set WCSS y-axis limit
 
         ax2 = ax1.twinx()
         ax2.set_ylabel('Average Silhouette Score', color=silhouette_color)
         ax2.plot(k_values_sil, silhouette_values, marker='s', linestyle='--', color=silhouette_color, label='Silhouette Score')
         ax2.tick_params(axis='y', labelcolor=silhouette_color)
+        # ax2.set_ylim(bottom=0.4, top=0.5) # Set Silhouette y-axis limit
         
-        plt.title('Optimal Cluster Number Determination') # Use normal title instead of suptitle
+        # plt.title('Optimal Cluster Number Determination') # Use normal title instead of suptitle
         lines, labels = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines + lines2, labels + labels2, loc='center right') 
+        ax1.legend(lines + lines2, labels + labels2, loc='upper right') 
         
         plt.tight_layout() 
         plt.savefig(os.path.join(self.output_dir, 'rq1_optimal_clusters_combined.png'), dpi=300, bbox_inches='tight')
@@ -319,7 +309,7 @@ class PlotGenerator:
             ax.set_rlabel_position(0)
             
         ax.set_rgrids([0.2, 0.4, 0.6, 0.8], labels=['0.2', '0.4', '0.6', '0.8'])
-        plt.title("Cluster Profiles Radar Plot (Normalized Features)", size=14, y=1.08) 
+        # plt.title("Cluster Profiles Radar Plot (Normalized Features)", size=14, y=1.08) 
         
         # Move legend to upper right
         ax.legend(title='Clusters', loc='upper right', bbox_to_anchor=(1.0, 1.0))
@@ -414,7 +404,7 @@ class PlotGenerator:
         colors = self.sunset_sunrise_palette[:n_clusters]
         
         # 2D Plot with interpretable labels
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(12, 4))
         
         # Plot each cluster in 2D
         for cluster_idx in range(n_clusters):
@@ -448,8 +438,8 @@ class PlotGenerator:
         # Add interpretable labels
         plt.xlabel(create_axis_label(pc1_pos, pc1_neg, pc1_pos_vals, pc1_neg_vals, 1, explained_var_ratio_2d[0]).replace('\n', ''))
         plt.ylabel(create_axis_label(pc2_pos, pc2_neg, pc2_pos_vals, pc2_neg_vals, 2, explained_var_ratio_2d[1]))
-        plt.title(f'2D PCA Visualization of Clusters Total Variance Explained: {total_var_explained_2d:.1%}', 
-                 pad=20)
+        # plt.title(f'2D PCA Visualization of Clusters Total Variance Explained: {total_var_explained_2d:.1%}', 
+        #          pad=20)
         
         # Add legend
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -521,7 +511,7 @@ class PlotGenerator:
             cluster_labels = sorted(set(google_data.columns) | set(bing_data.columns))
             
             # Create a single figure
-            fig, ax = plt.subplots(figsize=(12, 5))
+            fig, ax = plt.subplots(figsize=(12, 4))
             
             # Add a light gray grid for easier tracking
             ax.grid(axis='y', linestyle='--', alpha=0.3, color='gray')
@@ -566,7 +556,7 @@ class PlotGenerator:
             # Add labels and title
             ax.set_ylabel('Percentage (%)')
             ax.set_xlabel('Engine and Ranking Group')
-            ax.set_title('Profile Distribution Comparison Between Google and Bing')
+            # ax.set_title('Profile Distribution Comparison Between Google and Bing')
             ax.set_xticks(x)
             
             # Create nicer x-tick labels (horizontal)
@@ -631,9 +621,9 @@ class PlotGenerator:
             colors = self.sunset_sunrise_palette[:len(profile_dist_pct.columns)]
             
             # Plot bars
-            profile_dist_pct.plot(kind='bar', figsize=(12, 5), rot=0, ax=ax, color=colors)
+            profile_dist_pct.plot(kind='bar', figsize=(6, 3.6), rot=0, ax=ax, color=colors)
             
-            plt.title('Profile Distribution Comparison in Top Positions (Ranks 1-5)')
+            # plt.title('Profile Distribution Comparison in Top Positions (Ranks 1-5)')
             plt.xlabel('Search Engine')
             plt.ylabel('Percentage (%)')
             
@@ -800,7 +790,7 @@ class PlotGenerator:
 
         # Create a single plot with side-by-side bars
         # fig, ax = plt.subplots(figsize=(8, max(6, len(sorted_all_feature_names) * 0.4)))
-        fig, ax = plt.subplots(figsize=(12, 5))
+        fig, ax = plt.subplots(figsize=(6, 5))
         
         # Define bar positions
         y_pos = np.arange(len(sorted_all_feature_names))
@@ -814,8 +804,10 @@ class PlotGenerator:
         tech_color = self.sunset_sunrise_palette[0]  # Blue
         content_color = self.sunset_sunrise_palette[-1]  # Dark red
         
-        # Define different opacity levels for engines instead of patterns
-        opacity = [1.0, 0.65]  # Google full opacity, Bing more transparent
+        # --- HATCHING CONFIGURATION ---
+        # Google = No hatch (None), Bing = Striped hatch ('///')
+        # Hatches allow differentiation without relying solely on color shades
+        hatches = [None, '|||']
         
         # Determine categories for coloring (Technical or Content)
         categories = ['Technical' if name in self.lighthouse_scores else 'Content' for name in sorted_all_feature_names]
@@ -831,7 +823,9 @@ class PlotGenerator:
                     scores,
                     bar_width,
                     label=engine.capitalize(),
-                    alpha=opacity[i],  # Use opacity instead of patterns
+                    alpha=0.9, 
+                    hatch=hatches[i], # Apply hatch here
+                    edgecolor='white',
                     color=[tech_color if cat == 'Technical' else content_color for cat in categories],
                     # edgecolor='black' if i == 1 else None  # Add black edge to Bing bars for better distinction
                 )
@@ -840,18 +834,18 @@ class PlotGenerator:
         ax.set_yticks(y_pos)
         ax.set_yticklabels([self.feature_display_names.get(feat, feat) for feat in sorted_all_feature_names])
         ax.set_xlabel('Importance Score')
-        ax.set_title('Feature Importance Analysis for Predicting SERP Position', fontsize=12)
+        # ax.set_title('Feature Importance Analysis for Predicting SERP Position', fontsize=12)
         
         # Create legend for both engine and category
         import matplotlib.patches as mpatches
         
         # Create custom patches for engine legend
-        google_patch = mpatches.Patch(facecolor='gray', label='Google', alpha=opacity[0])
-        bing_patch = mpatches.Patch(facecolor='gray', label='Bing', alpha=opacity[1])
+        google_patch = mpatches.Patch(facecolor='gray', label='Google', alpha=0.9)
+        bing_patch = mpatches.Patch(facecolor='gray', hatch=hatches[1], label='Bing', alpha=0.9, edgecolor='white')
         
         # Create custom patches for category legend
-        technical_patch = mpatches.Patch(facecolor=tech_color, label='Technical', alpha=0.8)
-        content_patch = mpatches.Patch(facecolor=content_color, label='Content', alpha=0.8)
+        technical_patch = mpatches.Patch(facecolor=tech_color, label='Technical', alpha=0.9)
+        content_patch = mpatches.Patch(facecolor=content_color, label='Content', alpha=0.9)
   
         
         engine_legend = ax.legend(

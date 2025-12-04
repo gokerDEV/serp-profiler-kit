@@ -1,34 +1,34 @@
 \begin{table}[htbp!]
 \centering
-\caption{Mean Scaled Feature Values for the Six Identified Cluster Profiles (RQ1)}
+\caption{Mean Scaled Feature Values for the Identified Cluster Profiles (RQ1)}
 \label{tab:rq1_cluster_summary}
 \small 
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1}
-\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] }
+\begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}} S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] }
 \toprule
-\sbf{Feature (Scaled)} & {{\sbf{C0}}} & {{\sbf{C1}}} & {{\sbf{C2}}} & {{\sbf{C3}}} & {{\sbf{C4}}} & {{\sbf{C5}}} \\
+\sbf{Feature (Scaled)} & {{\sbf{C0}}} & {{\sbf{C1}}} & {{\sbf{C2}}} & {{\sbf{C3}}} & {{\sbf{C4}}} \\
 \dmidrule
-Perf. & 0.858 & 0.870 & 0.881 & 0.811 & 0.870 & 0.871 \\
-Access. & 0.806 & 0.823 & 0.826 & 0.736 & 0.805 & 0.837 \\
-Best Prac. & 0.853 & 0.879 & 0.880 & 0.826 & 0.899 & 0.866 \\
-SEO & 0.880 & 0.897 & 0.906 & 0.776 & 0.911 & 0.921 \\
-Q-Title & 0.000 & 0.000 & 1.000 & 0.000 & 1.000 & 1.000 \\
-Q-H1 & 1.000 & 0.000 & 1.000 & 0.000 & 0.000 & 1.000 \\
-ExQ-Title & 0.000 & 0.000 & 1.000 & 0.000 & 0.187 & 0.000 \\
-ExQ-H1 & 0.166 & 0.000 & 0.818 & 0.000 & 0.000 & 0.105 \\
-Q/B Density & 0.031 & 0.010 & 0.072 & 0.000 & 0.046 & 0.016 \\
-Sim. Title & 0.759 & 0.729 & 0.823 & 0.269 & 0.790 & 0.778 \\
-Sim. Content & 0.747 & 0.716 & 0.758 & 0.389 & 0.711 & 0.730 \\
-Word Count & 0.005 & 0.005 & 0.006 & 0.003 & 0.003 & 0.005 \\
+Perf. & 0.852 & 0.881 & 0.871 & 0.858 & 0.870 \\
+Access. & 0.796 & 0.826 & 0.837 & 0.806 & 0.805 \\
+Best Prac. & 0.863 & 0.880 & 0.866 & 0.853 & 0.899 \\
+SEO & 0.860 & 0.906 & 0.921 & 0.880 & 0.911 \\
+Q-Title & 0.000 & 1.000 & 1.000 & 0.000 & 1.000 \\
+Q-H1 & 0.000 & 1.000 & 1.000 & 1.000 & 0.000 \\
+ExQ-Title & 0.000 & 1.000 & 0.000 & 0.000 & 0.187 \\
+ExQ-H1 & 0.000 & 0.818 & 0.105 & 0.166 & 0.000 \\
+Q/B Density & 0.007 & 0.072 & 0.016 & 0.031 & 0.046 \\
+Sim. Title & 0.586 & 0.823 & 0.778 & 0.759 & 0.790 \\
+Sim. Content & 0.614 & 0.758 & 0.730 & 0.747 & 0.711 \\
+Word Count & 0.478 & 0.525 & 0.513 & 0.535 & 0.468 \\
 \midrule
-Cluster Size (N) & {1054} & {5142} & {2122} & {2314} & {1522} & {2311} \\
-Percentage (\%) & {7.3} & {35.5} & {14.7} & {16.0} & {10.5} & {16.0} \\
+Cluster Size (N) & \num{7456} & \num{2122} & \num{2311} & \num{1054} & \num{1522} \\
+Percentage (\%) & {51.5} & {14.7} & {16.0} & {7.3} & {10.5} \\
 \bottomrule
 \end{tabular*}
 \begin{tablenotes}[flushleft]
 \scriptsize
-\item Note: C0-C5 represent Cluster 0 to Cluster 5. Features were Min-Max scaled to [0,1].
+\item Note: C0, C1, C2, ... denote the K-means cluster labels ordered by their numeric ID. Features were Min-Max scaled to [0,1].
 \item Metric abbreviations are defined in Table \ref{tab:dataset_columns_types}.
 \end{tablenotes}
 \end{table}

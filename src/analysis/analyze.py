@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import kruskal, chi2_contingency, mannwhitneyu
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+import scikit_posthocs as sp
+from scipy.stats import kruskal, chi2_contingency, mannwhitneyu, chi2
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score, silhouette_samples
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 import statsmodels.api as sm
 from statsmodels.miscmodels.ordinal_model import OrderedModel
 import json
@@ -12,6 +13,7 @@ import logging
 import argparse
 from datetime import datetime
 import os
+import subprocess
 from typing import Dict
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
@@ -20,8 +22,10 @@ from kneed import KneeLocator
 class DatasetAnalyzer:
     """
     Performs the full statistical analysis pipeline for the research paper.
-    This definitive version includes all RQ1-RQ4 analyses, is free of plotting code,
-    and preserves all original analytical logic while improving structure.
+-   This definitive version includes all RQ1-RQ4 analyses, is free of plotting code,
+-   and preserves all original analytical logic while improving structure.
++   This definitive version includes all RQ1–RQ4 analyses, uses log1p + MinMax scaling
++   for mixed-type features, and is free of plotting code.
     """
     def __init__(self, input_file: str, output_dir: str, alpha: float = 0.05):
         self.input_file = input_file
@@ -74,12 +78,18 @@ class DatasetAnalyzer:
         X = self.df[self.feature_cols].copy()
         X = X.fillna(X.mean())
         
-        # Using MinMaxScaler as requested to match the original, trusted methodology.
+        
+        # Apply log1p to word_count (heavy right skew) and MinMaxScaler to map all
+        # features into [0, 1], keeping 0–1 and 0/1 variables in a comparable range.
+        if 'word_count' in X.columns:
+            X['word_count'] = np.log1p(X['word_count'])
+            self.logger.info("Applied log1p transformation to word_count to normalize distribution")
+        
         scaler = MinMaxScaler()
         X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
         
         # 2. Find Optimal K by calculating all required metrics in a single loop.
-        self.logger.info("Calculating WCSS, Silhouette, and Calinski-Harabasz scores for K=2 to 10...")
+        self.logger.info("Calculating WCSS and Silhouette scores for K=2 to 10 (Calinski-Harabasz calculated for optimal K only)...")
         max_k = 10
 
         
@@ -92,7 +102,7 @@ class DatasetAnalyzer:
         
         # As requested, calculate the overall silhouette score for the final clustering.
         overall_silhouette_score = silhouette_score(X_scaled, final_labels)
-        self.logger.info(f"Overall silhouette score for final clustering (K=6): {overall_silhouette_score}")
+        self.logger.info(f"Overall silhouette score for final clustering (K={optimal_k}): {overall_silhouette_score}")
         
         # Calculate additional validation metrics for the final clustering
         calinski_score = calinski_harabasz_score(X_scaled, final_labels)
@@ -140,26 +150,103 @@ class DatasetAnalyzer:
         for feature in self.feature_cols:
             # Create groups for each cluster, filtering out empty groups
             groups = []
+            group_labels = []
             for i in range(optimal_k):
                 cluster_data = self.df[feature][self.df['cluster_label'] == i]
                 # Remove NaN values and ensure we have data
                 cluster_data = cluster_data.dropna()
                 if len(cluster_data) > 0:
                     groups.append(cluster_data)
+                    group_labels.append(i)
             
             # Only perform test if we have at least 2 groups with data
             if len(groups) >= 2:
                 try:
+                    # Kruskal-Wallis omnibus test
                     h_stat, p_val = kruskal(*groups)
-                    kruskal_results[feature] = {'h_statistic': h_stat, 'p_value': p_val}
+                    result_entry = {'h_statistic': h_stat, 'p_value': p_val}
+                    
+                    # Dunn's post-hoc pairwise comparisons with Bonferroni correction
+                    dunn_pvalues = None
+                    if p_val < 0.05:
+                        try:
+                            # Flatten values and labels for scikit-posthocs
+                            all_values = np.concatenate([g.values for g in groups])
+                            all_labels = np.concatenate(
+                                [[str(lbl)] * len(g) for lbl, g in zip(group_labels, groups)]
+                            )
+                            # Create DataFrame for posthoc_dunn
+                            dunn_data = pd.DataFrame({
+                                'value': all_values,
+                                'group': all_labels
+                            })
+                            dunn_df = sp.posthoc_dunn(
+                                dunn_data,
+                                val_col='value',
+                                group_col='group',
+                                p_adjust='bonferroni'
+                            )
+                            # Ensure JSON-serializable output
+                            dunn_df.index = dunn_df.index.astype(str)
+                            dunn_df.columns = dunn_df.columns.astype(str)
+                            dunn_pvalues = dunn_df.to_dict()
+                        except Exception as e:
+                            self.logger.warning(
+                                f"Dunn post-hoc failed for feature {feature}: {str(e)}"
+                            )
+                    
+                    if dunn_pvalues is not None:
+                        result_entry['dunn_posthoc_pvalues'] = dunn_pvalues
+                    
+                    kruskal_results[feature] = result_entry
+
                 except Exception as e:
-                    self.logger.warning(f"Kruskal-Wallis test failed for {feature}: {str(e)}")
-                    kruskal_results[feature] = {'h_statistic': np.nan, 'p_value': np.nan}
+                    self.logger.warning(
+                        f"Kruskal-Wallis test failed for {feature}: {str(e)}"
+                    )
+                    kruskal_results[feature] = {
+                        'h_statistic': np.nan,
+                        'p_value': np.nan
+                    }
             else:
-                self.logger.warning(f"Insufficient groups for Kruskal-Wallis test on {feature}")
-                kruskal_results[feature] = {'h_statistic': np.nan, 'p_value': np.nan}
+                self.logger.warning(
+                    f"Insufficient groups for Kruskal-Wallis test on {feature}"
+                )
+                kruskal_results[feature] = {
+                    'h_statistic': np.nan,
+                    'p_value': np.nan
+                }
         
-        # 7. Store results in the original structure expected by the plot script.
+        # 7. Feature importance for clusters (RandomForestClassifier)
+        #    To generate the 'rf_cluster_feature_importance' structure seen in the new analysis results.
+        try:
+            rf_clf = RandomForestClassifier(
+                n_estimators=100,
+                random_state=42
+            )
+            rf_clf.fit(X_scaled, final_labels)
+            rf_importances = dict(zip(
+                X_scaled.columns,
+                rf_clf.feature_importances_
+            ))
+            # Sort by importance in descending order
+            sorted_feats = sorted(
+                rf_importances.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )
+            rf_cluster_feature_importance = {
+                'scores': {feat: float(score) for feat, score in rf_importances.items()},
+                # List at least the first 5–10 features as in the analysis JSON
+                'top_features': [feat for feat, _ in sorted_feats[:10]]
+            }
+        except Exception as e:
+            self.logger.warning(f"RandomForestClassifier for cluster feature importance failed: {str(e)}")
+            rf_cluster_feature_importance = {
+                'error': str(e)
+            }
+
+        # 8. Store results in the original structure expected by the plot script.
         self.results['rq1_clustering'] = {
             'cluster_stats': cluster_stats,
             'wcss': wcss,
@@ -173,9 +260,14 @@ class DatasetAnalyzer:
                 'davies_bouldin_score': float(davies_score),
                 'per_cluster_silhouette': per_cluster_silhouette,
                 'per_cluster_wcss': per_cluster_wcss
-            }
+            },
+            # Same field name as in the new analysis JSON:
+            'rf_cluster_feature_importance': rf_cluster_feature_importance
         }
         self.logger.info("Finished RQ1 Analysis with original methodology.")
+        
+
+
         
     def _find_optimal_clusters(self, X: pd.DataFrame, max_clusters: int) -> tuple:
         """
@@ -197,14 +289,24 @@ class DatasetAnalyzer:
         
         for k in range(2, max_clusters + 1):
             # Fit k-means
-            kmeans = KMeans(n_clusters=k, random_state=42)
+            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
             kmeans.fit(X)
             
             # Calculate WCSS
             wcss.append(kmeans.inertia_)
             
-            # Calculate silhouette score
-            silhouette_scores.append(silhouette_score(X, kmeans.labels_))
+            # Silhouette score (mark with -1.0 if labels fall into a single class)
+            if len(np.unique(kmeans.labels_)) > 1:
+                silhouette_scores.append(silhouette_score(X, kmeans.labels_))
+            else:
+                silhouette_scores.append(-1.0)
+
+            # Davies-Bouldin index (may error in some edge cases)
+            try:
+                db_index = davies_bouldin_score(X, kmeans.labels_)
+            except Exception:
+                db_index = np.nan
+            davies_bouldin_scores.append(db_index)
             
        
         # Find optimal k using the elbow method
@@ -218,8 +320,11 @@ class DatasetAnalyzer:
         # Create dictionaries with k values as keys
         wcss_dict = {str(k): float(score) for k, score in zip(range(2, max_clusters + 1), wcss)}
         silhouette_scores_dict = {str(k): float(score) for k, score in zip(range(2, max_clusters + 1), silhouette_scores)}
-        davies_bouldin_scores_dict = {str(k): float(score) for k, score in zip(range(2, max_clusters + 1), davies_bouldin_scores)} 
-   
+        davies_bouldin_scores_dict = {
+            str(k): (float(score) if not pd.isna(score) else None)
+            for k, score in zip(range(2, max_clusters + 1), davies_bouldin_scores)
+        } 
+           
             
         return optimal_k, wcss_dict, silhouette_scores_dict, davies_bouldin_scores_dict
 
@@ -244,16 +349,51 @@ class DatasetAnalyzer:
         kruskal_results = {}
         # Ensure 'rank_tier' column exists and get unique tiers
         if 'rank_tier' in engine_df.columns:
-            rank_tiers = engine_df['rank_tier'].unique()
+            rank_tiers = sorted(engine_df['rank_tier'].dropna().unique())
             for feature in self.feature_cols:
-                # Create a list of data series for each rank tier
-                groups = [engine_df[feature][engine_df['rank_tier'] == tier] for tier in rank_tiers if not engine_df[feature][engine_df['rank_tier'] == tier].empty]
-                
+                # Build groups per rank tier
+                groups = []
+                group_labels = []
+                for tier in rank_tiers:
+                    data = engine_df.loc[engine_df['rank_tier'] == tier, feature].dropna()
+                    if len(data) > 0:
+                        groups.append(data)
+                        group_labels.append(tier)
+
                 # Perform test only if there are multiple groups with data
                 if len(groups) > 1:
                     try:
+                        # Kruskal-Wallis omnibus test
                         h_stat, p_val = kruskal(*groups)
-                        kruskal_results[feature] = {'h_statistic': h_stat, 'p_value': p_val}
+                        result_entry = {'h_statistic': h_stat, 'p_value': p_val}
+
+                        # Dunn's post-hoc pairwise comparisons with Bonferroni correction
+                        dunn_pvalues = None
+                        if p_val < 0.05:
+                            try:
+                                all_values = np.concatenate([g.values for g in groups])
+                                all_labels = np.concatenate([[str(lbl)] * len(g) for lbl, g in zip(group_labels, groups)])
+                                # Create DataFrame for posthoc_dunn
+                                dunn_data = pd.DataFrame({
+                                    'value': all_values,
+                                    'group': all_labels
+                                })
+                                dunn_df = sp.posthoc_dunn(
+                                    dunn_data,
+                                    val_col='value',
+                                    group_col='group',
+                                    p_adjust='bonferroni'
+                                )
+                                dunn_df.index = dunn_df.index.astype(str)
+                                dunn_df.columns = dunn_df.columns.astype(str)
+                                dunn_pvalues = dunn_df.to_dict()
+                            except Exception as e:
+                                self.logger.warning(f"Dunn post-hoc (rank_tier) failed for feature {feature}: {str(e)}")
+
+                        if dunn_pvalues is not None:
+                            result_entry['dunn_posthoc_pvalues'] = dunn_pvalues
+
+                        kruskal_results[feature] = result_entry
                     except ValueError:
                         # This can happen if a group has no samples or only one sample
                         kruskal_results[feature] = {'h_statistic': np.nan, 'p_value': np.nan}
@@ -315,8 +455,13 @@ class DatasetAnalyzer:
         corr_matrix = engine_df[self.feature_cols + ['position']].corr(method='spearman')
         
         scaled_engine_df = engine_df.copy()
-        # Use StandardScaler here as well for consistency in regression analysis
-        scaled_engine_df[self.feature_cols] = StandardScaler().fit_transform(engine_df[self.feature_cols])
+        
+        if 'word_count' in scaled_engine_df.columns:
+            scaled_engine_df['word_count'] = np.log1p(scaled_engine_df['word_count'])
+            self.logger.info(f"Applied log1p transformation to word_count for {engine} engine")
+        
+        scaler = MinMaxScaler()
+        scaled_engine_df[self.feature_cols] = scaler.fit_transform(scaled_engine_df[self.feature_cols])
         scaled_engine_df['serp_quintile'] = pd.qcut(scaled_engine_df['position'], 5, labels=False, duplicates='drop')
         
         regression_results = {}
@@ -356,128 +501,97 @@ class DatasetAnalyzer:
             }
         }
 
-    def _test_proportional_odds_assumption(self, model, X: pd.DataFrame, y: pd.Series) -> Dict:
+    def _test_proportional_odds_assumption(self, model, X, y):
         """
-        Test the proportional odds assumption for ordinal logistic regression.
-        
-        This test checks whether the coefficients are constant across all ordinal categories.
-        If the assumption is violated, the model may not be appropriate.
-        
-        Returns:
-            Dict containing test results and interpretation
+        Brant testini R tarafında (MASS::polr + brant::brant) ile çalıştır,
+        sonucu Python'a taşı.
         """
+        # 1) Modelde kullanılan veriyi R'a göndermek için DataFrame hazırla
+        df_model = X.copy()
+        df_model["serp_quintile"] = y
+
         try:
-            # Get the number of unique categories
-            unique_categories = sorted(y.unique())
-            n_categories = len(unique_categories)
-            
-            if n_categories < 3:
-                return {
-                    'test_performed': False,
-                    'reason': 'Insufficient categories for proportional odds test (need at least 3)',
-                    'assumption_met': None,
-                    'recommendation': 'Consider using binary logistic regression or multinomial logistic regression'
-                }
-            
-            # Perform a simplified test of proportional odds assumption
-            # This test compares the model fit with and without the proportional odds constraint
-            
-            # Get model parameters and log-likelihood
-            model_params = model.params
-            model_llf = model.llf
-            
-            # Calculate degrees of freedom for the test
-            # For proportional odds model: df = (n_categories - 1) * n_features
-            # For unconstrained model: df = n_categories * n_features
-            n_features = len([p for p in model_params.index if not p.startswith('0/')])
-            df_constrained = (n_categories - 1) * n_features
-            df_unconstrained = n_categories * n_features
-            df_test = df_unconstrained - df_constrained
-            
-            # Calculate a test statistic based on model fit
-            # This is a simplified version of the Brant test
-            # We'll use the model's pseudo R-squared and AIC as indicators
-            
-            pseudo_r2 = model.prsquared
-            aic = model.aic
-            
-            # Create a simple test based on model diagnostics
-            # If the model fits well and has reasonable AIC, assume proportional odds holds
-            # This is a conservative approach
-            
-            # Calculate expected vs observed frequencies for each category
-            observed_freq = y.value_counts().sort_index()
-            total_obs = len(y)
-            
-            # Get predicted probabilities
-            try:
-                pred_probs = model.predict(X)
-                if pred_probs.ndim == 1:
-                    # If 1D, convert to 2D
-                    pred_probs = pred_probs.reshape(-1, 1)
-                
-                # Calculate expected frequencies
-                expected_freq = pred_probs.sum(axis=0)
-                
-                # Calculate chi-square statistic
-                chi2_stat = 0
-                for i, category in enumerate(unique_categories):
-                    if i < len(expected_freq):
-                        obs = observed_freq.get(category, 0)
-                        exp = expected_freq[i] if expected_freq[i] > 0 else 1
-                        chi2_stat += (obs - exp) ** 2 / exp
-                
-                # Calculate p-value
-                from scipy.stats import chi2
-                p_value = 1 - chi2.cdf(chi2_stat, n_categories - 1)
-                
-            except Exception as e:
-                # Fallback to a simpler test based on model fit
-                chi2_stat = None
-                p_value = None
-            
-            # Determine if assumption is met based on model diagnostics
-            # Conservative approach: if model fits reasonably well, assume assumption holds
-            assumption_met = True  # Default to True for conservative approach
-            
-            if p_value is not None:
-                assumption_met = p_value > 0.05
-            else:
-                # Use model fit indicators
-                assumption_met = (pseudo_r2 > 0.01 and aic < 50000)  # Reasonable thresholds
-            
-            # Provide interpretation and recommendations
-            if assumption_met:
-                interpretation = "Proportional odds assumption appears to be met based on model diagnostics. The ordinal logistic regression model is appropriate."
-                recommendation = "Continue using the proportional odds model. The model shows reasonable fit and the assumption appears valid."
-            else:
-                interpretation = "Proportional odds assumption may be violated. The coefficients might vary across ordinal categories."
-                recommendation = "Consider using alternative models: 1) Partial proportional odds model, 2) Multinomial logistic regression, 3) Continuation ratio model, or 4) Adjacent categories model."
-            
-            return {
-                'test_performed': True,
-                'test_name': 'Proportional Odds Assumption Test (Model Diagnostics)',
-                'chi2_statistic': float(chi2_stat) if chi2_stat is not None else None,
-                'degrees_of_freedom': int(df_test) if df_test > 0 else None,
-                'p_value': float(p_value) if p_value is not None else None,
-                'assumption_met': bool(assumption_met),
-                'alpha_level': 0.05,
-                'interpretation': interpretation,
-                'recommendation': recommendation,
-                'n_categories': int(n_categories),
-                'n_features': int(n_features),
-                'model_pseudo_r2': float(pseudo_r2),
-                'model_aic': float(aic),
-                'methodology_note': 'This test evaluates the proportional odds assumption using model diagnostics and goodness-of-fit measures. A conservative approach is used where the assumption is considered met unless strong evidence suggests otherwise.'
-            }
-            
+            brant_res = self._run_brant_via_r(df_model)
         except Exception as e:
+            # R tarafında bir hata olursa test yapılmadı olarak işaretle
             return {
-                'test_performed': False,
-                'error': str(e),
-                'assumption_met': None,
-                'recommendation': 'Unable to test proportional odds assumption due to computational error. Consider the model results with caution.'
+                "test_performed": False,
+                "reason": f"Brant test via R failed: {e}",
+                "assumption_met": None,
+                "alpha_level": self.alpha
             }
+
+        chi2_stat = float(brant_res["chi2_statistic"])
+        df_val    = int(brant_res["degrees_of_freedom"])
+        p_val     = float(brant_res["p_value"])
+
+        assumption_met = bool(p_val > self.alpha)
+
+        return {
+            "test_performed": True,
+            "chi2_statistic": chi2_stat,
+            "degrees_of_freedom": df_val,
+            "p_value": p_val,
+            "assumption_met": assumption_met,
+            "alpha_level": self.alpha
+        }
+            
+            
+    def _export_for_brant(self, df_model):
+        in_path = os.path.join(self.output_dir, "brant_model_data.csv")
+        df_model.to_csv(in_path, index=False)
+        return in_path
+    
+    
+    def _run_brant_via_r(self, df_model) -> dict:
+        in_path = self._export_for_brant(df_model)
+        out_path = os.path.join(self.output_dir, "brant_result.json")
+
+        # Convert to absolute paths so working directory doesn't matter
+        in_path = os.path.abspath(in_path)
+        out_path = os.path.abspath(out_path)
+
+        # Rscript komutunu çalıştır - use absolute path for R script
+        # Get the directory where this Python file is located
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        r_script_path = os.path.join(current_dir, "rq4_brant.R")
+        
+        # Ensure the script exists
+        if not os.path.exists(r_script_path):
+            raise FileNotFoundError(f"R script not found at {r_script_path}")
+        
+        # Use absolute path for R script too
+        r_script_path = os.path.abspath(r_script_path)
+        
+        cmd = [
+            "Rscript",
+            r_script_path,
+            in_path,
+            out_path
+        ]
+        
+        try:
+            result = subprocess.run(
+                cmd,
+                check=True,
+                capture_output=True,
+                text=True
+            )
+        except subprocess.CalledProcessError as e:
+            error_msg = f"R script failed with exit code {e.returncode}"
+            if e.stdout:
+                error_msg += f"\nSTDOUT: {e.stdout}"
+            if e.stderr:
+                error_msg += f"\nSTDERR: {e.stderr}"
+            raise RuntimeError(error_msg) from e
+
+        if not os.path.exists(out_path):
+            raise FileNotFoundError(f"R script did not create output file at {out_path}")
+
+        with open(out_path, "r", encoding="utf-8") as f:
+            res = json.load(f)
+
+        return res
 
     def _add_dataset_info(self):
         """Adds dataset information for plotting functions."""
