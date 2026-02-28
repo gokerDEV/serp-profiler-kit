@@ -1,0 +1,22 @@
+analysis:
+  performance:
+    lcp_ms: { multiplier: -1 }
+    ttfb_ms: { multiplier: -1 }
+    cls: { multiplier: -1 }
+  accessibility:
+    axe_score: { multiplier: 1 }
+    contrast_score: { multiplier: 1 }
+  readability:
+    flesch_reading_ease: { multiplier: 1 }
+    flesch_kincaid_grade: { multiplier: -1 }
+  semantic:
+    sim_title: { multiplier: 1 }
+    sim_description: { multiplier: 1 }
+    sim_h1: { multiplier: 1 }
+    sim_content: { multiplier: 1 }
+    
+rank_tiers:
+  bins: [0, 3, 10, 20]
+  labels: ["Top 1-3", "Rank 4-10", "Rank 11-20"]
+  logit_cut_points: [3, 10]
+

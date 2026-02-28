@@ -1,0 +1,209 @@
+# schema_v1.yml
+# Canonical Schema Definition for SERP Profiler Dataset
+# Used by src/helpers/schema_validator.py
+
+columns:
+  # --- Core Index ---
+  record_id:
+    type: str
+    description: "Unique identifier for the record (hash of key fields)"
+  search_engine:
+    type: str
+    description: "Search engine name (google, brave, mojeek)"
+  search_term:
+    type: str
+    description: "Query used for search"
+  rank:
+    type: int
+    description: "Position in SERP (1-20)"
+  url:
+    type: str
+    description: "URL of the result"
+  file_name:
+    type: str
+    description: "Name of the scraped HTML artifact"
+  folder:
+    type: str
+    description: "Path to the artifact folder"
+  source:
+    type: str
+    description: "Source of scraping (bot, extension, web)"
+  iteration:
+    type: int
+    description: "Iteration number of the scrape"
+  collected_at:
+    type: str
+    description: "Timestamp of collection (ISO 8601)"
+  html_size_bytes:
+    type: float
+    description: "Size of the HTML file in bytes"
+  status:
+    type: str
+    description: "Scraping status (ok, captcha, fail, etc.)"
+  title:
+    type: str
+    description: "Title from SERP or HTML"
+  snippet:
+    type: str
+    description: "Snippet from SERP"
+  section:
+    type: str
+    description: "News section/topic"
+  http_status:
+    type: float
+    description: "HTTP Status code (200, 403, 404)"
+
+  # --- Extraction A: Runtime ---
+  ttfb_ms:
+    type: float
+    description: "Time to First Byte (ms)"
+  dom_content_loaded_ms:
+    type: float
+    description: "DOM Content Loaded time (ms)"
+  load_time_ms:
+    type: float
+    description: "Full Page Load time (ms)"
+  lcp_ms:
+    type: float
+    description: "Largest Contentful Paint (ms)"
+  cls:
+    type: float
+    description: "Cumulative Layout Shift score"
+  status_A:
+    type: str
+  reason_A:
+    type: str
+
+  # --- Extraction B: Accessibility ---
+  contrast_violation_count:
+    type: float
+  contrast_pass_count:
+    type: float
+  min_contrast_ratio:
+    type: float
+  axe_violations_total:
+    type: float
+  axe_passes_total:
+    type: float
+  axe_incomplete_total:
+    type: float
+  axe_inapplicable_total:
+    type: float
+  axe_impact_critical:
+    type: float
+  axe_impact_serious:
+    type: float
+  axe_impact_moderate:
+    type: float
+  axe_impact_minor:
+    type: float
+  status_B:
+    type: str
+  reason_B:
+    type: str
+
+  # --- Extraction C: HTML Structure ---
+  tag_count:
+    type: float
+  link_count:
+    type: float
+  image_count:
+    type: float
+  script_count:
+    type: float
+  h1_count:
+    type: float
+  h2_count:
+    type: float
+  h3_count:
+    type: float
+  has_schema:
+    type: bool
+  has_published_time:
+    type: bool
+  has_author:
+    type: bool
+  canonical:
+    type: str
+  domain:
+    type: str
+  extractor_used:
+    type: str
+  text_quality_flag:
+    type: str
+  status_C:
+    type: str
+  reason_C:
+    type: str
+
+  # --- Extraction D: Readability ---
+  char_count:
+    type: float
+  word_count:
+    type: float
+  sentence_count:
+    type: float
+  flesch_reading_ease:
+    type: float
+  flesch_kincaid_grade:
+    type: float
+  gunning_fog:
+    type: float
+  smog_index:
+    type: float
+  automated_readability_index:
+    type: float
+  status_D:
+    type: str
+  reason_D:
+    type: str
+
+  # --- Extraction E: Semantic Similarity ---
+  sim_title:
+    type: float
+  sim_description:
+    type: float
+  sim_h1:
+    type: float
+  sim_content:
+    type: float
+  model_name:
+    type: str
+  status_E:
+    type: str
+  reason_E:
+    type: str
+
+  # --- Outliers ---
+  is_outlier_technical:
+    type: str
+  is_outlier_readability:
+    type: str
+  is_outlier_similarity:
+    type: str
+  is_outlier_accessibility:
+    type: str
+
+  # --- General ---
+  is_source_domain:
+    type: bool
+    description: "Flag indicating if the link belongs to the source domain (theguardian.com)"
+
+aliases:
+  # Mapping: Legacy/Alternat Name -> Canonical Name
+  # Semantic
+  similarity_guardian_title_vs_result_title: sim_title
+  similarity_guardian_description_vs_result_description: sim_description
+  similarity_guardian_content_vs_result_content: sim_content
+  
+  # Readability
+  main_text_char_count: char_count
+  main_text_word_count: word_count
+  
+  # HTML Structure
+  img_count: image_count
+  p_count: tag_count # Approximate mapping
+  has_jsonld: has_schema
+  
+  # General
+  link: url

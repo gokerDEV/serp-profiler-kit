@@ -1,0 +1,88 @@
+{
+    "filters": [
+        {
+            "column": "http_status",
+            "op": "eq",
+            "value": 200,
+            "description": "Keep only records with HTTP 200"
+        },
+        {
+            "column": "word_count",
+            "op": "min",
+            "value": 20,
+            "description": "Drop records with less than 20 words (low content)"
+        },
+        {
+            "column": "sim_title",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if sim_title is missing"
+        },
+        {
+            "column": "sim_description",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if sim_description is missing"
+        },
+        {
+            "column": "sim_h1",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if sim_h1 is missing"
+        },
+        {
+            "column": "sim_content",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if sim_content is missing"
+        },
+        {
+            "column": "flesch_reading_ease",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if flesch_reading_ease is missing"
+        },
+        {
+            "column": "flesch_kincaid_grade",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if flesch_kincaid_grade is missing"
+        },
+        {
+            "column": "lcp_ms",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if lcp_ms is missing"
+        },
+        {
+            "column": "ttfb_ms",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if ttfb_ms is missing"
+        },
+        {
+            "column": "cls",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if cls is missing"
+        },
+        {
+            "column": "axe_score",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if axe_score is missing"
+        },
+        {
+            "column": "contrast_score",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if contrast_score is missing"
+        },
+        {
+            "column": "axe_impact_critical",
+            "op": "notnull",
+            "value": null,
+            "description": "Drop if axe_impact_critical is missing"
+        }
+    ]
+}
