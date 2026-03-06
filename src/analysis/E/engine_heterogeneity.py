@@ -48,14 +48,15 @@ def generate_replication_grid(coeffs, predictors):
         if not relevant: continue
         
         signs = [np.sign(r.get('effect_size', r.get('coef'))) for r in relevant]
-        pvals = [r.get('p_raw', r.get('pval')) for r in relevant]
+        # Use p_fdr if available, fallback to p_raw/pval
+        pvals = [r.get('p_fdr', r.get('p_raw', r.get('pval', 1.0))) for r in relevant]
         cis = [(r.get('ci_lower_95', r.get('ci_lower')), r.get('ci_upper_95', r.get('ci_upper'))) for r in relevant]
         
         # Agreement: All signs same?
         all_same_sign = len(set(signs)) == 1
         
-        # Significant Agreement: All significant AND same sign?
-        sig_agreement = all(p < 0.05 for p in pvals) and all_same_sign
+        # Significant Agreement: All FDR-significant AND same sign?
+        sig_agreement = all(pd.notna(p) and p < 0.05 for p in pvals) and all_same_sign
         
         # CI Overlap
         max_lower = max([c[0] for c in cis])

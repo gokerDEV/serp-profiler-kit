@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Dependencies: install.packages(c("fixest", "data.table", "argparse"))
-# This script implements Analysis F (RQ6): Query Difficulty
+# This script implements Analysis F (RQ7): Query Dispersion
 
 suppressPackageStartupMessages({
     library(fixest)
@@ -24,7 +24,7 @@ source_helper <- function(relative_path) {
 
 invisible(source_helper("src/helpers/data_loader.R"))
 
-parser <- ArgumentParser(description = "Analysis F: Query Difficulty (RQ7) (R Implementation)")
+parser <- ArgumentParser(description = "Analysis F: Query Dispersion (RQ7) (R Implementation)")
 parser$add_argument("--dataset", type = "character", required = TRUE, help = "Path to prepared Parquet dataset")
 parser$add_argument("--out-dir", type = "character", required = TRUE, help = "Output directory")
 args <- parser$parse_args()
@@ -65,24 +65,24 @@ if (length(cols_to_scale) > 0) {
     cat("Standardized", length(cols_to_scale), "continuous predictors.\n")
 }
 
-# Difficulty Bands (Assuming 'difficulty_band' column exists, otherwise created in Python step)
-if (!"difficulty_band" %in% names(df)) {
-    cat("Warning: 'difficulty_band' column not found. Skipping analysis.\n")
+# Dispersion Bands (Assuming 'dispersion_band' column exists, otherwise created in Python step)
+if (!"dispersion_band" %in% names(df)) {
+    cat("Warning: 'dispersion_band' column not found. Skipping analysis.\n")
     quit(status = 0)
 }
 
-df[, difficulty_band := as.factor(difficulty_band)]
+df[, dispersion_band := as.factor(dispersion_band)]
 
-# --- RQ7: Difficulty Band Interaction Model ---
-cat("Running Difficulty Interaction Model...\n")
+# --- RQ7: Dispersion Band Interaction Model ---
+cat("Running Dispersion Interaction Model...\n")
 
-# Formula: recip_rank ~ (Core) * difficulty_band + search_engine | search_term
-interaction_terms <- paste0("i(difficulty_band, ", core_predictors, ")")
+# Formula: recip_rank ~ (Core) * dispersion_band + search_engine | search_term
+interaction_terms <- paste0("i(dispersion_band, ", core_predictors, ")")
 formula_str <- paste(
     "recip_rank ~",
     paste(interaction_terms, collapse = " + "),
     "+", paste(core_predictors, collapse = " + "), # Main effects
-    "+ i(search_engine, ref='brave') | search_term"
+    "+ i(search_engine, ref='google') | search_term"
 )
 f_diff <- as.formula(formula_str)
 
@@ -96,7 +96,7 @@ tryCatch(
         setnames(res_dt, c("term", "coef", "se", "tstat", "pval"))
 
         res_dt[, `:=`(
-            model_id = "RQ7_Difficulty_Interaction_R_Full",
+            model_id = "RQ7_Dispersion_Interaction_R_Full",
             subset = "Full",
             n_obs = nobs(mod_diff_full),
             r2 = r2(mod_diff_full, "r2"),
@@ -106,10 +106,10 @@ tryCatch(
 
         ci <- confint(mod_diff_full)
         res_dt[, `:=`(ci_lower = ci[, 1], ci_upper = ci[, 2])]
-        results_list[["Difficulty_Interaction_Full"]] <- res_dt
+        results_list[["Dispersion_Interaction_Full"]] <- res_dt
     },
     error = function(e) {
-        cat("Error in Difficulty Model (Full):", e$message, "\n")
+        cat("Error in Dispersion Model (Full):", e$message, "\n")
     }
 )
 
@@ -123,7 +123,7 @@ if ("is_source_domain" %in% names(df)) {
             setnames(res_dt, c("term", "coef", "se", "tstat", "pval"))
 
             res_dt[, `:=`(
-                model_id = "RQ7_Difficulty_Interaction_R_NoSource",
+                model_id = "RQ7_Dispersion_Interaction_R_NoSource",
                 subset = "NoSource",
                 n_obs = nobs(mod_diff_ns),
                 r2 = r2(mod_diff_ns, "r2"),
@@ -133,10 +133,10 @@ if ("is_source_domain" %in% names(df)) {
 
             ci <- confint(mod_diff_ns)
             res_dt[, `:=`(ci_lower = ci[, 1], ci_upper = ci[, 2])]
-            results_list[["Difficulty_Interaction_NoSource"]] <- res_dt
+            results_list[["Dispersion_Interaction_NoSource"]] <- res_dt
         },
         error = function(e) {
-            cat("Error in Difficulty Model (NoSource):", e$message, "\n")
+            cat("Error in Dispersion Model (NoSource):", e$message, "\n")
         }
     )
 }
@@ -165,7 +165,7 @@ if (length(results_list) > 0) {
         practical_flag = (abs(effect_size) >= 0.03)
     )]
 
-    out_path <- file.path(args$out_dir, "difficulty_coeffs_r.csv")
+    out_path <- file.path(args$out_dir, "dispersion_coeffs_r.csv")
     fwrite(all_results, out_path)
     cat("Saved R results to", out_path, "\n")
 } else {

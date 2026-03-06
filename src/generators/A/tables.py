@@ -21,6 +21,10 @@ def tex_escape(text):
 
 def wrap_latex_table(content, caption, label, column_specs, tablenotes=None):
     """Wraps content in LaTeX table environment"""
+    # Enforce extracolsep textwidth stretch for tabular*
+    if "@{\\extracolsep{\\fill}}" not in column_specs:
+        column_specs = column_specs[0] + "@{\\extracolsep{\\fill}}" + column_specs[1:]
+        
     notes_block = ""
     if tablenotes:
         notes_block = f"\\begin{{tablenotes}}[flushleft]\n\\scriptsize\n\\item {tablenotes}\n\\end{{tablenotes}}\n"
@@ -69,48 +73,37 @@ def generate_dataset_distribution_table(out_dir):
     tiers_info = get_rank_tiers()
     ok_df['rank_bin'] = pd.cut(ok_df['rank'], bins=tiers_info['bins'], labels=tiers_info['labels'])
     
-    pivot = pd.crosstab(ok_df['search_engine'], ok_df['rank_bin'], margins=True, margins_name='Total')
+    pivot_full = pd.crosstab(ok_df['search_engine'], ok_df['rank_bin'], margins=True, margins_name='Total')
     
-    cols = list(pivot.columns)
+    # Source domain subset
+    top_domain = ok_df['domain'].value_counts().index[0]
+    if 'is_source_domain' in ok_df.columns:
+        subset_source = ok_df[ok_df['is_source_domain'] == True].copy()
+    else:
+        subset_source = ok_df[ok_df['domain'] == top_domain].copy()
+    pivot_source = pd.crosstab(subset_source['search_engine'], subset_source['rank_bin'], margins=True, margins_name='Total')
+    
+    cols = list(pivot_full.columns)
     col_str = " & ".join([tex_escape(str(c)) for c in cols])
     rows = [f"\\sbf{{Search Engine}} & {col_str} \\\\", "\\dmidrule"]
     
-    for idx, row in pivot.iterrows():
+    rows.append("\\multicolumn{5}{l}{\\sit{Subset: Full}} \\\\")
+    for idx, row in pivot_full.iterrows():
+        r_vals = " & ".join([f"{int(x):,}" for x in row])
+        rows.append(f"{tex_escape(str(idx).capitalize())} & {r_vals} \\\\")
+        
+    rows.append("\\multicolumn{5}{l}{\\sit{Subset: Source}} \\\\")
+    for idx, row in pivot_source.iterrows():
         r_vals = " & ".join([f"{int(x):,}" for x in row])
         rows.append(f"{tex_escape(str(idx).capitalize())} & {r_vals} \\\\")
         
     content = "\n".join(rows)
-    latex = wrap_latex_table(content, "Dataset Distribution: Accepted Results by Rank", "tab:dataset_dist", "l" + "c" * len(cols), tablenotes="Counts reflect the final accepted dataset after all cleaning and outlier removal steps.")
+    notes = "Counts reflect the final accepted dataset after all cleaning and outlier removal steps.\n\\item Subset: Source is domain visibility for " + tex_escape(top_domain) + "."
+    latex = wrap_latex_table(content, "Dataset Distribution: Accepted Results by Rank", "tab:dataset_dist", "l" + "c" * len(cols), tablenotes=notes)
     with open(f"{out_dir}/table_dataset_distribution.tex", "w") as f:
         f.write(latex)
 
-def generate_source_domain_table(out_dir):
-    idx_path = "data/index.parquet"
-    if not os.path.exists(idx_path): return
-    df = pd.read_parquet(idx_path)
-    
-    # Identify top news source (e.g. theguardian.com)
-    top_domain = df[df['status'] == 'ok']['domain'].value_counts().index[0]
-    
-    subset = df[(df['status'] == 'ok') & (df['domain'] == top_domain)].copy()
-    from src.helpers.data_loader import get_rank_tiers
-    tiers_info = get_rank_tiers()
-    subset['rank_bin'] = pd.cut(subset['rank'], bins=tiers_info['bins'], labels=tiers_info['labels'])
-    
-    pivot = pd.crosstab(subset['search_engine'], subset['rank_bin'], margins=True, margins_name='Total')
-    
-    cols = list(pivot.columns)
-    col_str = " & ".join([tex_escape(str(c)) for c in cols])
-    rows = [f"\\sbf{{Search Engine}} & {col_str} \\\\", "\\dmidrule"]
-    
-    for idx, row in pivot.iterrows():
-        r_vals = " & ".join([f"{int(x):,}" for x in row])
-        rows.append(f"{tex_escape(str(idx).capitalize())} & {r_vals} \\\\")
-        
-    content = "\n".join(rows)
-    latex = wrap_latex_table(content, f"Source Domain Visibility: {top_domain} by Rank", "tab:source_domain_dist", "l" + "c" * len(cols))
-    with open(f"{out_dir}/table_source_domain.tex", "w") as f:
-        f.write(latex)
+
 
 def generate_feature_match_rate_table(out_dir):
     ds_path = get_latest_dataset()
@@ -218,15 +211,18 @@ def generate_rq1_engine_concentration_table(out_dir):
         'domain_is_monopoly': 'mean'
     }).reset_index()
     
-    rows = ["\\sbf{Subset} & \\sbf{Search Engine} & \\sbf{Mean Gini} & \\sbf{Mean Norm. Entropy} & \\sbf{Monopoly Rate (\\%)} \\\\", "\\dmidrule"]
-    for _, row in stats.iterrows():
-        sub = str(row['subset'])
-        eng = str(row['search_engine']).capitalize()
-        m_rate = row['domain_is_monopoly'] * 100
-        rows.append(f"{tex_escape(sub)} & {eng} & {row['domain_gini']:.3f} & {row['domain_entropy_norm']:.3f} & {m_rate:.1f}\\% \\\\")
+    rows = ["\\sbf{Search Engine} & \\sbf{Mean Gini} & \\sbf{Mean Norm. Entropy} & \\sbf{Monopoly Rate (\\%)} \\\\", "\\dmidrule"]
+    for subset, group in stats.groupby('subset'):
+        rows.append(f"\\multicolumn{{4}}{{l}}{{\\sit{{Subset: {tex_escape(subset)}}}}} \\\\")
+        for _, row in group.iterrows():
+            eng = str(row['search_engine']).capitalize()
+            m_rate = row['domain_is_monopoly'] * 100
+            rows.append(f"{eng} & {row['domain_gini']:.3f} & {row['domain_entropy_norm']:.3f} & {m_rate:.1f}\\% \\\\")
+        rows.append("\\midrule")
+    if rows[-1] == "\\midrule": rows.pop()
         
     content = "\n".join(rows)
-    latex = wrap_latex_table(content, "RQ1: Engine Rank Concentration Summary", "tab:rq1_summary", "llccc", tablenotes="Mean Gini: domain-level Gini coefficient computed per query over share of results in Top 20 (higher = more concentrated). Monopoly rate: percentage of queries where a single domain occupies all Top 3 positions.")
+    latex = wrap_latex_table(content, "RQ1: Engine Rank Concentration Summary", "tab:rq1_summary", "lccc", tablenotes="Mean Gini: domain-level Gini coefficient computed per query over share of results in Top 20 (higher = more concentrated). Monopoly rate: percentage of queries where a single domain occupies all Top 3 positions.")
     with open(f"{out_dir}/table_rq1_summary.tex", "w") as f:
         f.write(latex)
 
@@ -241,9 +237,10 @@ def generate_rq1_effect_sizes_table(out_dir):
     engines = ok_df['search_engine'].dropna().unique()
     subsets = ok_df['subset'].dropna().unique()
     
-    rows = ["\\sbf{Subset} & \\sbf{Comparison Pair} & \\sbf{Metric} & \\sbf{Mean Diff} & \\sbf{Cohen's d} & \\sbf{Interpretation} \\\\", "\\dmidrule"]
+    rows = ["\\sbf{Comparison Pair} & \\sbf{Metric} & \\sbf{Mean Diff} & \\sbf{Cohen's d} & \\sbf{Interpretation} \\\\", "\\dmidrule"]
     import itertools
     for sub in subsets:
+        rows.append(f"\\multicolumn{{5}}{{l}}{{\\sit{{Subset: {tex_escape(sub)}}}}} \\\\")
         sub_df = ok_df[ok_df['subset'] == sub]
         for e1, e2 in itertools.combinations(engines, 2):
             g1 = sub_df[sub_df['search_engine'] == e1]
@@ -263,10 +260,12 @@ def generate_rq1_effect_sizes_table(out_dir):
                 d = (m1 - m2) / pooled_std
                 interp = 'Large' if abs(d) > 0.8 else ('Medium' if abs(d) > 0.5 else 'Small')
                 
-                rows.append(f"{tex_escape(sub)} & {e1.capitalize()} vs {e2.capitalize()} & {tex_escape(metric)} & {m1-m2:.3f} & {d:.3f} & {interp} \\\\")
+                rows.append(f"{e1.capitalize()} vs {e2.capitalize()} & {tex_escape(metric)} & {m1-m2:.3f} & {d:.3f} & {interp} \\\\")
+        rows.append("\\midrule")
+    if rows[-1] == "\\midrule": rows.pop()
             
     content = "\n".join(rows)
-    latex = wrap_latex_table(content, "RQ1: Engine Pairwise Comparisons (Effect Sizes)", "tab:rq1_effects", "lllcll")
+    latex = wrap_latex_table(content, "RQ1: Engine Pairwise Comparisons (Effect Sizes)", "tab:rq1_effects", "llcll")
     with open(f"{out_dir}/table_rq1_effects.tex", "w") as f:
         f.write(latex)
 
@@ -301,23 +300,27 @@ def generate_confirmatory_table(out_dir):
         df = df[~df['term'].astype(str).str.contains('search_engine')]
         df = df[df['term'] != '(Intercept)']
         
-        rows = ["\\sbf{Subset} & \\sbf{Model} & \\sbf{Predictor} & \\sbf{Estimate ($\\beta^*$)} & \\sbf{CI95} & \\sbf{p-val} & \\sbf{Flag} \\\\", "\\dmidrule"]
+        rows = ["\\sbf{Model} & \\sbf{Predictor} & \\sbf{Estimate ($\\beta^*$)} & \\sbf{CI95} & \\sbf{p-val} & \\sbf{Flag} \\\\", "\\dmidrule"]
         
-        for (subset, mid), grp in df.groupby(['subset', 'model_id']):
-            label = tex_escape(mid)
-            sub_label = tex_escape(subset)
-            is_first = True
-            for _, row in grp.iterrows():
-                term = tex_escape(row['term'])
-                pract = "Yes" if row.get('practical_flag', False) else "No"
-                p_m = label if is_first else ""
-                p_s = sub_label if is_first else ""
-                rows.append(f"{p_s} & {p_m} & {term} & {row['effect_size']:.3f} & {format_ci(row['ci_lower_95'], row['ci_upper_95'])} & {format_p_val(row['p_raw'])} & {pract} \\\\")
-                is_first = False
-            rows.append("\\midrule")
+        for subset, sub_grp in df.groupby('subset'):
+            rows.append(f"\\multicolumn{{6}}{{l}}{{\\sit{{Subset: {tex_escape(subset)}}}}} \\\\")
+            for mid, grp in sub_grp.groupby('model_id'):
+                label = str(mid).replace("_R_FE", "")
+                label = tex_escape(label)
+                is_first = True
+                for _, row in grp.iterrows():
+                    term = tex_escape(row['term'])
+                    pract = "Yes" if row.get('practical_flag', False) else "No"
+                    p_m = label if is_first else ""
+                    rows.append(f"{p_m} & {term} & {row['effect_size']:.3f} & {format_ci(row['ci_lower_95'], row['ci_upper_95'])} & {format_p_val(row['p_raw'])} & {pract} \\\\")
+                    is_first = False
+                rows.append("\\thinrule")
+            if rows and rows[-1] == "\\thinrule":
+                rows[-1] = "\\midrule"
             
-        content = "\n".join(rows[:-1])
-        latex = wrap_latex_table(content, "Confirmatory Regression Results", "tab:confirmatory_main", "ll@{\\extracolsep{\\fill}}lllll")
+        if rows and rows[-1] == "\\midrule": rows.pop()
+        content = "\n".join(rows)
+        latex = wrap_latex_table(content, "Confirmatory Regression Results", "tab:confirmatory_main", "l@{\\extracolsep{\\fill}}lrlll")
         with open(f"{out_dir}/table_confirmatory_main.tex", "w") as f:
             f.write(latex)
 
@@ -339,23 +342,27 @@ def generate_supplementary_confirmatory_table(out_dir):
         df = df[~df['term'].astype(str).str.contains('search_engine')]
         df = df[df['term'] != '(Intercept)']
         
-        rows = ["\\sbf{Subset} & \\sbf{Model} & \\sbf{Predictor} & \\sbf{Estimate ($\\beta^*$)} & \\sbf{CI95} & \\sbf{p-val} & \\sbf{Flag} \\\\", "\\dmidrule"]
+        rows = ["\\sbf{Model} & \\sbf{Predictor} & \\sbf{Estimate ($\\beta^*$)} & \\sbf{CI95} & \\sbf{p-val} & \\sbf{Flag} \\\\", "\\dmidrule"]
         
-        for (subset, mid), grp in df.groupby(['subset', 'model_id']):
-            label = tex_escape(mid)
-            sub_label = tex_escape(subset)
-            is_first = True
-            for _, row in grp.iterrows():
-                term = tex_escape(row['term'])
-                pract = "Yes" if row.get('practical_flag', False) else "No"
-                p_m = label if is_first else ""
-                p_s = sub_label if is_first else ""
-                rows.append(f"{p_s} & {p_m} & {term} & {row['effect_size']:.3f} & {format_ci(row['ci_lower_95'], row['ci_upper_95'])} & {format_p_val(row['p_raw'])} & {pract} \\\\")
-                is_first = False
-            rows.append("\\midrule")
+        for subset, sub_grp in df.groupby('subset'):
+            rows.append(f"\\multicolumn{{6}}{{l}}{{\\sit{{Subset: {tex_escape(subset)}}}}} \\\\")
+            for mid, grp in sub_grp.groupby('model_id'):
+                label = str(mid).replace("_R_FE_Full", "").replace("_R_FE_NoSource", "").replace("_R_FE_Source", "").replace("_R_FE", "")
+                label = tex_escape(label)
+                is_first = True
+                for _, row in grp.iterrows():
+                    term = tex_escape(row['term'])
+                    pract = "Yes" if row.get('practical_flag', False) else "No"
+                    p_m = label if is_first else ""
+                    rows.append(f"{p_m} & {term} & {row['effect_size']:.3f} & {format_ci(row['ci_lower_95'], row['ci_upper_95'])} & {format_p_val(row['p_raw'])} & {pract} \\\\")
+                    is_first = False
+                rows.append("\\thinrule")
+            if rows and rows[-1] == "\\thinrule":
+                rows[-1] = "\\midrule"
             
-        content = "\n".join(rows[:-1])
-        latex = wrap_latex_table(content, "Supplementary Regression Results", "tab:confirmatory_supplementary", "ll@{\\extracolsep{\\fill}}lllll")
+        if rows and rows[-1] == "\\midrule": rows.pop()
+        content = "\n".join(rows)
+        latex = wrap_latex_table(content, "Supplementary Regression Results", "tab:confirmatory_supplementary", "l@{\\extracolsep{\\fill}}lrlll")
         with open(f"{out_dir}/table_confirmatory_supplementary.tex", "w") as f:
             f.write(latex)
 
@@ -391,10 +398,10 @@ def generate_ablation_predictive_table(out_dir):
         df = pd.read_csv(abl_path)
         if 'subset' not in df.columns: df['subset'] = 'Full'
         
-        rows = ["\\sbf{Subset} & \\sbf{Ablated Block} & \\sbf{Mean NDCG@10} & \\sbf{$\\Delta$ NDCG [95\\% CI]} & \\sbf{Family} \\\\", "\\dmidrule"]
+        rows = ["\\sbf{Ablated Block} & \\sbf{Mean NDCG@10} & \\sbf{$\\Delta$ NDCG [95\\% CI]} & \\sbf{Family} \\\\", "\\dmidrule"]
         
         for sub_name, sub_grp in df.groupby('subset'):
-            is_first = True
+            rows.append(f"\\multicolumn{{4}}{{l}}{{\\sit{{Subset: {tex_escape(sub_name)}}}}} \\\\")
             for _, row in sub_grp.iterrows():
                 if row['set_name'] == 'Full Model':
                     delta_str = "---"
@@ -404,14 +411,13 @@ def generate_ablation_predictive_table(out_dir):
                     ci_up = row.get('ci_upper_95', eff)
                     delta_str = f"{eff:.4f} [{ci_lo:.4f}, {ci_up:.4f}]"
 
-                p_s = tex_escape(sub_name) if is_first else ""
-                rows.append(f"{p_s} & {tex_escape(row['set_name'])} & {row['ndcg_mean']:.4f} & {delta_str} & {row['model_family']} \\\\")
-                is_first = False
+                rows.append(f"{tex_escape(row['set_name'])} & {row['ndcg_mean']:.4f} & {delta_str} & {row['model_family']} \\\\")
             rows.append("\\midrule")
             
-        content = "\n".join(rows[:-1])
+        if rows[-1] == "\\midrule": rows.pop()
+        content = "\n".join(rows)
         note = "$\\Delta$ represents the difference in NDCG@10 when a block is ablated. 95\\% CIs are estimated via query-cluster bootstrap over 1000 resamples."
-        latex = wrap_latex_table(content, "Ablation Study: Predictive Success (LTR)", "tab:ablation_pred", "llccc", tablenotes=note)
+        latex = wrap_latex_table(content, "Ablation Study: Predictive Success (LTR)", "tab:ablation_pred", "lccc", tablenotes=note)
         with open(f"{out_dir}/table_ablation_predictive.tex", "w") as f:
             f.write(latex)
 
@@ -441,9 +447,19 @@ def _build_feature_trend_table(df, caption, label, filename, out_dir):
     rank_order = ['Top 1-3', 'Rank 4-10', 'Rank 11-20']
     
     def format_mean_ci(r):
-        mean = r['mean']
-        lo = r['ci_lower']
-        up = r['ci_upper']
+        from src.helpers.data_loader import get_feature_multipliers
+        mults = get_feature_multipliers()
+        feature = r['feature']
+        mult = mults.get(feature, 1.0)
+        
+        mean = r['mean'] * mult
+        lo = r['ci_lower'] * mult
+        up = r['ci_upper'] * mult
+        
+        # If multiplier was negative, swap lower and upper bounds
+        if mult < 0:
+            lo, up = up, lo
+            
         return f"{mean:.3f} [{lo:.3f}, {up:.3f}]"
         
     df['formatted'] = df.apply(format_mean_ci, axis=1)
@@ -453,29 +469,33 @@ def _build_feature_trend_table(df, caption, label, filename, out_dir):
     cols = ['subset', 'feature', 'search_engine'] + [r for r in rank_order if r in pivot.columns]
     pivot = pivot[cols]
     
-    rows = ["\\sbf{Subset} & \\sbf{Feature} & \\sbf{Engine} & " + " & ".join([f"\\sbf{{{tex_escape(c)}}}" for c in cols[3:]]) + " \\\\", "\\dmidrule"]
+    num_cols = len(cols) - 1
+    rows = ["\\sbf{Feature} & \\sbf{Engine} & " + " & ".join([f"\\sbf{{{tex_escape(c)}}}" for c in cols[3:]]) + " \\\\", "\\dmidrule"]
     
-    for (subset, feature), grp in pivot.groupby(['subset', 'feature']):
-        is_first_sub_feat = True
-        for _, row in grp.iterrows():
-            sub_str = tex_escape(subset) if is_first_sub_feat else ""
-            feat_str = tex_escape(feature) if is_first_sub_feat else ""
-            eng_str = str(row['search_engine']).capitalize()
-            
-            vals = []
-            for c in cols[3:]:
-                vals.append(str(row[c]) if pd.notna(row[c]) else "-")
+    for subset, sub_grp in pivot.groupby('subset'):
+        rows.append(f"\\multicolumn{{{num_cols}}}{{l}}{{\\sit{{Subset: {tex_escape(subset)}}}}} \\\\")
+        for feature, grp in sub_grp.groupby('feature'):
+            is_first_feat = True
+            for _, row in grp.iterrows():
+                feat_str = tex_escape(feature) if is_first_feat else ""
+                eng_str = str(row['search_engine']).capitalize()
                 
-            val_str = " & ".join(vals)
-            rows.append(f"{sub_str} & {feat_str} & {eng_str} & {val_str} \\\\")
-            is_first_sub_feat = False
-        rows.append("\\midrule")
+                vals = []
+                for c in cols[3:]:
+                    vals.append(str(row[c]) if pd.notna(row[c]) else "-")
+                    
+                val_str = " & ".join(vals)
+                rows.append(f"{feat_str} & {eng_str} & {val_str} \\\\")
+                is_first_feat = False
+            rows.append("\\thinrule")
+        if rows and rows[-1] == "\\thinrule":
+            rows[-1] = "\\midrule"
         
-    if rows[-1] == "\\midrule":
+    if rows and rows[-1] == "\\midrule":
         rows.pop()
         
     content = "\n".join(rows)
-    col_spec = "lll" + "c" * (len(cols) - 3)
+    col_spec = "ll" + "c" * (len(cols) - 3)
     latex = wrap_latex_table(content, caption, label, col_spec)
     with open(f"{out_dir}/{filename}", "w") as f:
         f.write(latex)
@@ -500,6 +520,108 @@ def generate_rq1_feature_trends_semantic_table(out_dir):
     
     _build_feature_trend_table(df_s, "RQ1: Rank-Binned Trends for Semantic Similarity Features", "tab:rq1_trends_semantic", "table_rq1_trends_semantic.tex", out_dir)
 
+def generate_rq8_robustness_table_main(out_dir):
+    path = "data/analysis/G/robustness_coeffs_r.csv"
+    if not os.path.exists(path): return
+    df = pd.read_csv(path)
+    
+    from src.helpers.data_loader import get_feature_categories
+    cat_map = get_feature_categories()
+    schema_terms = list(cat_map.keys())
+    
+    df = df[df['term'].isin(schema_terms)].copy()
+    
+    baseline_id = 'RQ8_Robustness_Baseline_R'
+    win_id = 'RQ8_Robustness_Winsorized_R'
+    cluster_id = 'RQ8_Robustness_2WayCluster_R'
+    
+    header = "\\sbf{Predictor} & \\sbf{Baseline $\\beta^*$ (CI95)} & \\sbf{Winsorized} & \\sbf{Two-way Clustered} & \\sbf{Sign Match} & \\sbf{Pract. Match} \\\\"
+    
+    def get_val(r_df):
+        if r_df.empty: return "---", None, None
+        r = r_df.iloc[0]
+        return f"{r['effect_size']:.3f} [{r['ci_lower_95']:.3f}, {r['ci_upper_95']:.3f}]", r['effect_size'], r.get('practical_flag', False)
+
+    table_rows = [header, "\\dmidrule"]
+    
+    for term in schema_terms:
+        sub = df[df['term'] == term]
+        if sub.empty: continue
+        
+        b_str, b_ef, b_pr = get_val(sub[sub['model_id'] == baseline_id])
+        w_str, w_ef, w_pr = get_val(sub[sub['model_id'] == win_id])
+        c_str, c_ef, c_pr = get_val(sub[sub['model_id'] == cluster_id])
+        
+        if b_str == "---": continue
+        
+        # Comparisons
+        signs = [np.sign(e) for e in [b_ef, w_ef, c_ef] if e is not None]
+        sign_match = "Yes" if len(set(signs)) == 1 else "No"
+        
+        practs = [p for p in [b_pr, w_pr, c_pr] if p is not None]
+        pract_match = "Yes" if len(set(practs)) == 1 else "No"
+        
+        table_rows.append(f"{tex_escape(term)} & {b_str} & {w_str} & {c_str} & {sign_match} & {pract_match} \\\\")
+
+    content = "\n".join(table_rows)
+    caption = "Robustness checks (RQ8-A)"
+    notes = "Baseline: main specification with query-cluster robust SEs. Winsorized: 1\\%--99\\% winsorization on continuous predictors. Two-way clustered: SEs clustered by query and domain.\\newline\nSign Match compares coefficient signs to Baseline. Pract. Match indicates whether the practical-importance flag ($|\\beta^*|\\ge 0.03$) matches Baseline."
+    
+    latex = wrap_latex_table(content, caption, "tab:rq8a_robustness", "l l l l c c", tablenotes=notes)
+    with open(f"{out_dir}/table_rq8a_robustness.tex", "w") as f:
+        f.write(latex)
+
+def generate_rq8_robustness_table_nosource(out_dir):
+    path = "data/analysis/G/robustness_coeffs_r.csv"
+    if not os.path.exists(path): return
+    df = pd.read_csv(path)
+    
+    from src.helpers.data_loader import get_feature_categories
+    cat_map = get_feature_categories()
+    schema_terms = list(cat_map.keys())
+    
+    df = df[df['term'].isin(schema_terms)].copy()
+    
+    baseline_id = 'RQ8_Robustness_Baseline_R'
+    nosource_id = 'RQ8_Robustness_NoSourceDomain_R'
+    
+    if nosource_id not in df['model_id'].values:
+        return
+        
+    header = "\\sbf{Predictor} & \\sbf{Baseline $\\beta^*$ (CI95)} & \\sbf{NoSourceDomain $\\beta^*$ (CI95)} & \\sbf{Sign Match} & \\sbf{Pract. Match} \\\\"
+    
+    def get_val(r_df):
+        if r_df.empty: return "---", None, None
+        r = r_df.iloc[0]
+        return f"{r['effect_size']:.3f} [{r['ci_lower_95']:.3f}, {r['ci_upper_95']:.3f}]", r['effect_size'], r.get('practical_flag', False)
+
+    table_rows = [header, "\\dmidrule"]
+    
+    for term in schema_terms:
+        sub = df[df['term'] == term]
+        if sub.empty: continue
+        
+        b_str, b_ef, b_pr = get_val(sub[sub['model_id'] == baseline_id])
+        ns_str, ns_ef, ns_pr = get_val(sub[sub['model_id'] == nosource_id])
+        
+        if b_str == "---" or ns_str == "---": continue
+        
+        signs = [np.sign(e) for e in [b_ef, ns_ef] if e is not None]
+        sign_match = "Yes" if len(set(signs)) == 1 else "No"
+        
+        practs = [p for p in [b_pr, ns_pr] if p is not None]
+        pract_match = "Yes" if len(set(practs)) == 1 else "No"
+        
+        table_rows.append(f"{tex_escape(term)} & {b_str} & {ns_str} & {sign_match} & {pract_match} \\\\")
+
+    content = "\n".join(table_rows)
+    caption = "Sub-dataset Sensitivity (RQ8-B)"
+    notes = "Baseline (Full Data) is compared against the subset excluding source domains (NoSourceDomain).\\newline\nSign Match compares coefficient signs to Baseline. Pract. Match indicates whether the practical-importance flag ($|\\beta^*|\\ge 0.03$) matches Baseline."
+    
+    latex = wrap_latex_table(content, caption, "tab:rq8b_sensitivity", "l l l c c", tablenotes=notes)
+    with open(f"{out_dir}/table_rq8b_sensitivity.tex", "w") as f:
+        f.write(latex)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out-dir", default="data/reports/tables")
@@ -508,7 +630,6 @@ def main():
     
     print("Generating LaTeX Tables...")
     generate_dataset_distribution_table(args.out_dir)
-    generate_source_domain_table(args.out_dir)
     generate_feature_match_rate_table(args.out_dir)
     generate_html_size_stats_table(args.out_dir)
     generate_model_eligibility_table(args.out_dir)
@@ -522,6 +643,8 @@ def main():
     generate_ablation_stability_table(args.out_dir)
     generate_rq1_feature_trends_non_semantic_table(args.out_dir)
     generate_rq1_feature_trends_semantic_table(args.out_dir)
+    generate_rq8_robustness_table_main(args.out_dir)
+    generate_rq8_robustness_table_nosource(args.out_dir)
     
     print(f"Done. Tables saved to {args.out_dir}")
 

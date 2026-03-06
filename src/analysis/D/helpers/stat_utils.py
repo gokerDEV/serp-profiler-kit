@@ -120,6 +120,9 @@ def standardize_variables(df, cols):
     """
     df_std = df.copy()
     for col in cols:
+        if col in ['rank', 'recip_rank']:
+            continue
+            
         if col in df_std.columns:
             mean = df_std[col].mean()
             std = df_std[col].std()

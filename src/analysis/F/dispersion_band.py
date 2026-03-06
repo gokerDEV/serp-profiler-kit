@@ -25,15 +25,15 @@ BLOCK_READABILITY = metrics.get("readability", [])
 BLOCK_PERFORMANCE = metrics.get("performance", [])
 BLOCK_ACCESSIBILITY = metrics.get("accessibility", [])
 
-# Core predictors for difficulty interaction
-DIFFICULTY_TARGET_PREDICTORS = BLOCK_SEMANTICS + BLOCK_READABILITY + BLOCK_PERFORMANCE + BLOCK_ACCESSIBILITY
+# Core predictors for dispersion interaction
+DISPERSION_TARGET_PREDICTORS = BLOCK_SEMANTICS + BLOCK_READABILITY + BLOCK_PERFORMANCE + BLOCK_ACCESSIBILITY
 
-def assign_difficulty_bands(df, metric='sim_content', n_bands=3):
+def assign_dispersion_bands(df, metric='sim_content', n_bands=3):
     """
-    Assigns query difficulty bands based on the mean semantic similarity
+    Assigns query dispersion bands based on the mean semantic similarity
     of the top results for each query.
     """
-    print("Calculating query difficulty metrics...", file=sys.stderr)
+    print("Calculating query dispersion metrics...", file=sys.stderr)
     
     # 1. Calculate query-level dispersion (std) of sim_content
     query_stats = df.groupby('search_term')[metric].agg(['std', 'mean']).reset_index()
@@ -47,18 +47,18 @@ def assign_difficulty_bands(df, metric='sim_content', n_bands=3):
         
     # 2. Create Bands
     try:
-        labels = ['High_Difficulty', 'Medium_Difficulty', 'Low_Difficulty']
-        query_stats['difficulty_band'] = pd.qcut(query_stats['q_dispersion'], q=n_bands, labels=labels)
+        labels = ['Low_Dispersion', 'Medium_Dispersion', 'High_Dispersion']
+        query_stats['dispersion_band'] = pd.qcut(query_stats['q_dispersion'], q=n_bands, labels=labels)
     except ValueError:
-        query_stats['difficulty_band'] = 'Medium_Difficulty'
+        query_stats['dispersion_band'] = 'Medium_Dispersion'
         
     # Merge back
-    df_merged = df.merge(query_stats[['search_term', 'difficulty_band', 'q_dispersion']], on='search_term', how='left')
+    df_merged = df.merge(query_stats[['search_term', 'dispersion_band', 'q_dispersion']], on='search_term', how='left')
     
     return df_merged, query_stats
 
 def main():
-    parser = argparse.ArgumentParser(description="Analysis F (RQ7): Query Difficulty (R Wrapper)")
+    parser = argparse.ArgumentParser(description="Analysis F (RQ7): Query Dispersion (R Wrapper)")
     parser.add_argument("--dataset", default="data/dataset.parquet", help="Path to merged dataset")
     parser.add_argument("--out-dir", default="data/analysis/F", help="Output directory")
     parser.add_argument("--dataset-variant", default="clean", help="Variant tag")
@@ -71,24 +71,24 @@ def main():
     df = pd.read_parquet(args.dataset)
     
     # 0. Assign Bands (Must happen in Python to generate the signal, or just for reporting)
-    df_banded, q_stats = assign_difficulty_bands(df, metric='sim_content')
+    df_banded, q_stats = assign_dispersion_bands(df, metric='sim_content')
     
-    # Filter out rows where difficulty could not be assigned
-    if 'difficulty_band' in df_banded.columns:
-        df_banded = df_banded.dropna(subset=['difficulty_band'])
+    # Filter out rows where dispersion could not be assigned
+    if 'dispersion_band' in df_banded.columns:
+        df_banded = df_banded.dropna(subset=['dispersion_band'])
     
-    print(f"Assigned difficulty bands. Valid N={len(df_banded)}", file=sys.stderr)
+    print(f"Assigned dispersion bands. Valid N={len(df_banded)}", file=sys.stderr)
     
     if q_stats is not None:
-        q_stats.to_csv(f"{args.out_dir}/query_difficulty_stats.csv", index=False)
+        q_stats.to_csv(f"{args.out_dir}/dispersion_band_stats.csv", index=False)
         
     # Write temp dataset with just raw data + bands.
     temp_dataset = os.path.join(args.out_dir, "dataset_with_bands.parquet")
     df_banded.to_parquet(temp_dataset, index=False)
     
-    print("Running RQ7 Query Difficulty Analysis (via R)...", file=sys.stderr)
+    print("Running RQ7 Query Dispersion Analysis (via R)...", file=sys.stderr)
     
-    r_script = os.path.join(project_root, "src/analysis/F/query_difficulty.R")
+    r_script = os.path.join(project_root, "src/analysis/F/dispersion_band.R")
     # Pass the TEMP dataset to R
     success = run_r_wrapper(r_script, ["--dataset", temp_dataset, "--out-dir", args.out_dir])
     

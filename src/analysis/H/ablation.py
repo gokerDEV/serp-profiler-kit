@@ -6,7 +6,7 @@ import os
 import json
 from pathlib import Path
 import datetime
-from sklearn.ensemble import RandomForestRegressor
+from lightgbm import LGBMRanker
 from sklearn.model_selection import GroupKFold
 from sklearn.inspection import permutation_importance
 from linearmodels.panel import PanelOLS
@@ -33,7 +33,7 @@ def train_evaluate_ltr_and_stability(df, feature_cols, target_col='recip_rank', 
     
     1. CV NDCG@10 Evaluation.
     2. Rank Stability (Permutation Importance) [Optional, on Full Train].
-       - Planda: "grouped-by-query evaluation... permutation/SHAP rank stability"
+       - Plan: "grouped-by-query evaluation... permutation/SHAP rank stability"
        - We run permutation importance on the hold-out sets or a separate validation?
        - Standard: Run Permutation Importance on the whole set (or CV) to get feature importance.
     """
@@ -45,18 +45,35 @@ def train_evaluate_ltr_and_stability(df, feature_cols, target_col='recip_rank', 
     query_ndcgs = {}
     
     for train_idx, test_idx in gkf.split(df, y=df[target_col], groups=groups):
-        # Prepare Train
-        X_train = df.iloc[train_idx][feature_cols].fillna(0) 
-        y_train = df.iloc[train_idx][target_col]
-        
         # Prepare Test
         X_test_full = df.iloc[test_idx].copy()
         X_test = X_test_full[feature_cols].fillna(0)
         y_test = X_test_full[target_col]
         
-        # Train RF
-        model = RandomForestRegressor(n_estimators=50, max_depth=8, n_jobs=-1, random_state=42)
-        model.fit(X_train, y_train)
+        # Train Learning-to-Rank model (LambdaMART)
+        # LightGBM expects group sizes aligned with the row order in X_train/y_train.
+        train_df_sorted = df.iloc[train_idx].copy().sort_values('search_term')
+        X_train = train_df_sorted[feature_cols].fillna(0)
+        y_train = (21 - train_df_sorted['rank']).astype(int)
+        group_train = train_df_sorted.groupby('search_term').size().to_list()
+        
+        model = LGBMRanker(
+            objective='lambdarank',
+            metric='ndcg',
+            n_estimators=250,
+            learning_rate=0.05,
+            num_leaves=31,
+            min_data_in_leaf=20,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
+            n_jobs=-1,
+        )
+        model.fit(
+            X_train,
+            y_train,
+            group=group_train,
+        )
         
         # Predict
         preds = model.predict(X_test)
@@ -104,7 +121,7 @@ def train_evaluate_ltr_and_stability(df, feature_cols, target_col='recip_rank', 
             test_groups = X_test_full['search_term'].copy()
 
             def ndcg_permutation_scorer(
-                estimator: RandomForestRegressor,
+                estimator: LGBMRanker,
                 X_perm: pd.DataFrame,
                 y_true: pd.Series | np.ndarray,
             ) -> float:
@@ -138,7 +155,7 @@ def train_evaluate_ltr_and_stability(df, feature_cols, target_col='recip_rank', 
                 model,
                 X_test,
                 y_test,
-                n_repeats=5,           # increase later if compute allows
+                n_repeats=permutation_repeats,
                 random_state=42,
                 n_jobs=-1,
                 scoring=ndcg_permutation_scorer,

@@ -14,9 +14,10 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 # Globals
-ENGINE_ORDER = ["google", "brave", "mojeek"]
+ENGINE_ORDER = ["Google", "Brave", "Mojeek"]
+ENGINE_MAP = {"google": "Google", "brave": "Brave", "mojeek": "Mojeek"}
 SUNSET_SUNRISE_PALETTE = ['#3b5b92', '#7a5195', '#ce5a8f', '#f0ad5f', '#e27850', '#cc4040', '#a42c33']
-ENGINE_COLORS = {"google": "#4c8bf5", "brave": "#ff631c", "mojeek": "#7abb3b"}
+ENGINE_COLORS = {"Google": "#4c8bf5", "Brave": "#ff631c", "Mojeek": "#7abb3b"}
 
 # Set style
 sns.set_theme(style="whitegrid")
@@ -78,6 +79,8 @@ def generate_rq1_plots(out_dir):
             df_dist = df_dist[df_dist['subset'] == 'Full']
             
         if 'sim_content' in df_dist.columns:
+            if 'search_engine' in df_dist.columns:
+                df_dist['search_engine'] = df_dist['search_engine'].replace(ENGINE_MAP)
             # Sort engines
             avail_engines = [e for e in ENGINE_ORDER if e in df_dist['search_engine'].unique()]
             if avail_engines:
@@ -93,6 +96,8 @@ def generate_rq1_plots(out_dir):
             
     if 'trends' in data:
         df_trends = pd.DataFrame(data['trends'])
+        if 'search_engine' in df_trends.columns:
+            df_trends['search_engine'] = df_trends['search_engine'].replace(ENGINE_MAP)
         
         target_subsets = ['Full', 'NoSource', 'Source']
         avail_sub = [s for s in target_subsets if 'subset' in df_trends.columns and s in df_trends['subset'].unique()]
@@ -150,6 +155,8 @@ def generate_all_feature_trends(out_dir):
     path = "data/analysis/C/rq1_feature_trends.csv"
     if not os.path.exists(path): return
     df = pd.read_csv(path)
+    if 'search_engine' in df.columns:
+        df['search_engine'] = df['search_engine'].replace(ENGINE_MAP)
     
     from src.helpers.data_loader import get_feature_categories
     cat_map = get_feature_categories()
@@ -195,9 +202,20 @@ def generate_all_feature_trends(out_dir):
                 
                 sub_indexed = sub_indexed.loc[present_bins].reset_index()
                 
+                # Apply multiplier for plotting visualization
+                from src.helpers.data_loader import get_feature_multipliers
+                mults = get_feature_multipliers()
+                mult = mults.get(feature, 1.0)
+                
+                y_mean = sub_indexed['mean'].values * mult
+                y_ci_lower = sub_indexed['ci_lower'].values * mult
+                y_ci_upper = sub_indexed['ci_upper'].values * mult
+                
+                if mult < 0:
+                    y_ci_lower, y_ci_upper = y_ci_upper, y_ci_lower
+                    
                 x_pos = np.array([bins.index(b) for b in present_bins]) + (i - len(engines)/2.0 + 0.5) * dodge
-                y_mean = sub_indexed['mean'].values
-                ci_margin = sub_indexed['mean'].values - sub_indexed['ci_lower'].values
+                ci_margin = y_mean - y_ci_lower
                 
                 line = ax.errorbar(
                     x_pos, 
@@ -305,6 +323,8 @@ def generate_permutation_importance(out_dir):
     if not os.path.exists(path): return
     df = pd.read_csv(path)
     if 'feature' not in df.columns: return
+    if 'subset' in df.columns:
+        df['subset'] = df['subset'].replace(ENGINE_MAP)
     if 'importance_mean' in df.columns:
         df['importance'] = df['importance_mean']
         
@@ -339,12 +359,8 @@ def generate_permutation_importance(out_dir):
     save_plot(f"{out_dir}/fig_feature_importance.png")
 
 def generate_replication_grid(out_dir: str) -> None:
-    candidates = [
-        "/mnt/data/replication_grid.csv",
-        "data/analysis/E/replication_grid.csv",
-    ]
-    path = next((p for p in candidates if os.path.exists(p)), None)
-    if path is None:
+    path = "data/analysis/E/replication_grid.csv"
+    if not os.path.exists(path):
         return
 
     try:
@@ -357,26 +373,34 @@ def generate_replication_grid(out_dir: str) -> None:
     cat_map = get_feature_categories()
     schema_terms = list(cat_map.keys())
 
-#     if not current_terms: return
-    
-#     df_plot = df[df['term'].isin(current_terms)].copy()
-    
-#     # Sort terms by schema
-#     df_plot['term'] = pd.Categorical(df_plot['term'], categories=current_terms, ordered=True)
-#     df_plot = df_plot.sort_values('term')
-    
-#     # Heatmap of specific statistical agreement metrics
-#     metrics = ['all_sign_agreement', 'significant_agreement', 'ci_overlap']
-#     avail_metrics = [m for m in metrics if m in df_plot.columns]
-    
-#     if not avail_metrics: return
-    
-#     pivot = df_plot.set_index('term')[avail_metrics].astype(float)
-    
-#     plt.figure(figsize=(10, max(5, len(pivot)*0.35)))
-#     sns.heatmap(pivot, annot=True, cmap='coolwarm', center=0.5, vmin=0, vmax=1)
-#     plt.title("Replication Grid: Coefficient Consistency Across Engines")
-#     save_plot(f"{out_dir}/fig_replication_grid.png")
+    if 'subset' not in df.columns:
+        df['subset'] = 'Full'
+        
+    for subset in df['subset'].unique():
+        df_sub = df[df['subset'] == subset].copy()
+        df_plot = df_sub[df_sub['term'].isin(schema_terms)].copy()
+        
+        if df_plot.empty:
+            continue
+            
+        # Sort terms by schema
+        df_plot['term'] = pd.Categorical(df_plot['term'], categories=schema_terms, ordered=True)
+        df_plot = df_plot.sort_values('term')
+        
+        # Heatmap of specific statistical agreement metrics
+        metrics = ['all_sign_agreement', 'significant_agreement', 'ci_overlap']
+        avail_metrics = [m for m in metrics if m in df_plot.columns]
+        
+        if not avail_metrics: 
+            continue
+        
+        pivot = df_plot.set_index('term')[avail_metrics].astype(float)
+        
+        plt.figure(figsize=(12, 5))
+        sns.heatmap(pivot, annot=True, cmap='coolwarm', center=0.5, vmin=0, vmax=1)
+        plt.title(f"Replication Grid: Coefficient Consistency Across Engines ({subset})")
+        plt.tight_layout()
+        save_plot(f"{out_dir}/fig_replication_grid_{subset}.png")
 
 def generate_engine_stratified_forest(out_dir: str) -> None:
     candidates = [
@@ -394,102 +418,151 @@ def generate_engine_stratified_forest(out_dir: str) -> None:
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
 
-    df_eng = df[df["subset"].astype(str).str.startswith("Engine_")].copy()
-    if df_eng.empty:
-        return
+    if "subset" in df.columns:
+        subsets_available = [str(s) for s in df["subset"].unique() if pd.notna(s) and s.startswith("Engine_")]
+        
+        # We need to extract the base subset name (Full, NoSource, Source)
+        base_subsets = set()
+        for s in subsets_available:
+            parts = s.split("_")
+            if len(parts) >= 3:
+                base_subsets.add(parts[-1])
+        base_subsets = list(base_subsets)
+    else:
+        base_subsets = ["Full"]
 
-    df_eng["engine"] = df_eng["subset"].astype(str).str.replace("Engine_", "", regex=False)
+    for current_subset in base_subsets:
+        # Filter for the current subset (e.g. Full, NoSource, Source)
+        subset_pattern = f"Engine_.*_{current_subset}$" if current_subset != "Full" else "Engine_.*_Full"
+        
+        # In case the subset string didn't have _Full etc. but we fallback to "Full"
+        df_eng = df[df["subset"].astype(str).str.contains(subset_pattern, regex=True)].copy()
+        if df_eng.empty:
+            df_eng = df[df["subset"].astype(str).str.startswith("Engine_")].copy()
+            if current_subset != "Full": continue # Don't plot empty stuff
 
-    # Use global ENGINE_ORDER
-    df_eng = df_eng[df_eng["engine"].isin(ENGINE_ORDER)].copy()
+        if df_eng.empty: continue
 
-    from src.helpers.data_loader import get_feature_categories
-    cat_map = get_feature_categories()
-    schema_terms = list(cat_map.keys())
+        # Extract engine name, assuming format Engine_{engine}_{subset} or Engine_{engine}
+        df_eng["engine"] = df_eng["subset"].astype(str).str.extract(r"Engine_([^_]+)")
+        df_eng["engine"] = df_eng["engine"].replace(ENGINE_MAP)
+        
+        # Use global ENGINE_ORDER
+        df_eng = df_eng[df_eng["engine"].isin(ENGINE_ORDER)].copy()
+        
+        from src.helpers.data_loader import get_feature_categories
+        cat_map = get_feature_categories()
+        schema_terms = list(cat_map.keys())
 
-    current_terms = [t for t in schema_terms if t in set(df_eng["term"].astype(str))]
-    if not current_terms:
-        return
-
-    df_eng = df_eng[df_eng["term"].isin(current_terms)].copy()
-    df_eng["term"] = pd.Categorical(df_eng["term"], categories=current_terms, ordered=True)
-    df_eng["engine"] = pd.Categorical(df_eng["engine"], categories=ENGINE_ORDER, ordered=True)
-    df_eng = df_eng.sort_values(["term", "engine"])
-
-    terms = current_terms
-    y_base = np.arange(len(terms), dtype=float)
-
-    offsets = {
-        "brave": -0.20,
-        "google": 0.00,
-        "mojeek": 0.20,
-    }
-
-    fig, ax = plt.subplots(figsize=(12, 5))
-
-    ax.axvline(0.0, linestyle="--", linewidth=1)
-
-    for eng in ENGINE_ORDER:
-        sub = df_eng[df_eng["engine"] == eng].copy()
-        if sub.empty:
+        # Category assignment for grouping
+        df_eng["category"] = df_eng["term"].map(cat_map).astype(str).str.lower()
+        
+        current_terms = [t for t in schema_terms if t in set(df_eng["term"].astype(str))]
+        if not current_terms:
             continue
+
+        panel_order = ["performance", "accessibility", "readability", "semantic"]
+        panels = [c for c in panel_order if c in set(df_eng["category"])]
+        
+        ordered_features = []
+        category_boundaries = []
+        current_y_idx = 0
+        feature_to_y = {}
+        
+        for cat in panels:
+            sub = df_eng[df_eng["category"] == cat]
+            feats = [t for t in schema_terms if t in set(sub["term"].astype(str))]
+            for f in feats:
+                if f not in feature_to_y:
+                    feature_to_y[f] = current_y_idx
+                    ordered_features.append(f)
+                    current_y_idx += 1
+            category_boundaries.append(current_y_idx - 0.5)
+
+        if category_boundaries:
+            category_boundaries.pop()
             
-        color = ENGINE_COLORS.get(eng, 'black')
+        df_eng = df_eng[df_eng["term"].isin(ordered_features)].copy()
+        df_eng["term"] = pd.Categorical(df_eng["term"], categories=ordered_features, ordered=True)
+        df_eng["engine"] = pd.Categorical(df_eng["engine"], categories=ENGINE_ORDER, ordered=True)
+        df_eng = df_eng.sort_values(["term", "engine"])
 
-        term_to_row = {t: i for i, t in enumerate(terms)}
-        y = np.array([term_to_row[t] for t in sub["term"].astype(str)], dtype=float) + offsets[eng]
+        offsets = {
+            "Brave": -0.20,
+            "Google": 0.00,
+            "Mojeek": 0.20,
+        }
 
-        x = sub["effect_size"].astype(float).to_numpy()
-        lo = sub["ci_lower_95"].astype(float).to_numpy()
-        hi = sub["ci_upper_95"].astype(float).to_numpy()
+        fig, ax = plt.subplots(figsize=(12, 5))
 
-        xerr = np.vstack([x - lo, hi - x])
+        ax.axvline(0.0, linestyle="--", linewidth=1, color="gray")
+        
+        for b in category_boundaries:
+            ax.axhline(b, linestyle=":", linewidth=1, color="lightgray")
 
-        ax.errorbar(
-            x,
-            y,
-            xerr=xerr,
-            fmt="o",
-            capsize=3,
-            linewidth=1,
-            label=eng,
-            color=color,
-        )
+        for eng in ENGINE_ORDER:
+            sub = df_eng[df_eng["engine"] == eng].copy()
+            if sub.empty:
+                continue
+                
+            color = ENGINE_COLORS.get(eng, 'black')
 
-    draw_category_separators(ax, terms, cat_map)
+            y = np.array([feature_to_y[str(t)] for t in sub["term"].astype(str)], dtype=float) + offsets[eng]
 
-    ax.set_yticks(y_base)
-    ax.set_yticklabels(terms)
-    ax.invert_yaxis()
-    ax.set_xlabel("Standardized Coefficient (β*)")
-    ax.set_title("RQ6 Engine-stratified Coefficients with 95% CI")
-    ax.legend(title="Search Engine", loc="upper right")
+            x = sub["effect_size"].astype(float).to_numpy()
+            lo = sub["ci_lower_95"].astype(float).to_numpy()
+            hi = sub["ci_upper_95"].astype(float).to_numpy()
 
-    save_plot(f"{out_dir}/fig_rq6_engine_stratified_forest.png")
+            xerr = np.vstack([x - lo, hi - x])
 
-def generate_difficulty_bands_heatmap(out_dir: str) -> None:
-    path = "data/analysis/F/difficulty_coeffs_r.csv"
+            ax.errorbar(
+                x,
+                y,
+                xerr=xerr,
+                fmt="o",
+                capsize=3,
+                linewidth=1,
+                label=eng.capitalize(),
+                color=color,
+            )
+
+        ax.set_yticks(range(len(ordered_features)))
+        ax.set_yticklabels(ordered_features)
+        ax.invert_yaxis()
+        ax.set_xlabel("Standardized Coefficient (β*)")
+        ax.set_title(f"RQ6 Engine-stratified Coefficients with 95% CI ({current_subset})")
+        ax.legend(title="Search Engine", loc="upper right")
+
+        save_plot(f"{out_dir}/fig_rq6_engine_stratified_forest_{current_subset}.png")
+
+def generate_dispersion_bands_heatmap(out_dir: str) -> None:
+    path = "data/analysis/F/dispersion_coeffs_r.csv"
     if not os.path.exists(path):
-        print("No difficulty_coeffs_r.csv found")
+        print("No dispersion_coeffs_r.csv found")
         return
 
-    df_full = pd.read_csv(path)
+    df = pd.read_csv(path)
+
+    required = {"term", "effect_size", "p_raw", "ci_lower_95", "ci_upper_95"}
+    if not required.issubset(df.columns):
+        print(f"Missing columns. Found: {df.columns.tolist()}")
+        return
     
     from src.helpers.data_loader import get_feature_categories
     cat_map = get_feature_categories()
     band_order = ["Low", "Medium", "High"]
     schema_terms = list(cat_map.keys())
 
-    subsets = df_full['subset'].unique() if 'subset' in df_full.columns else ['Full']
+    subsets = df['subset'].unique() if 'subset' in df.columns else ['Full']
     
     pivots = {}
     for subset in subsets:
-        strat = df_full[df_full['subset'] == subset].copy() if 'subset' in df_full.columns else df_full.copy()
-        strat = strat[strat["term"].astype(str).str.contains("difficulty_band::", case=False, na=False)].copy()
+        strat = df[df['subset'] == subset].copy() if 'subset' in df.columns else df.copy()
+        strat = strat[strat["term"].astype(str).str.contains("dispersion_band::", case=False, na=False)].copy()
         if strat.empty: continue
 
-        strat[["band", "feature"]] = strat["term"].astype(str).str.extract(r"difficulty_band::(.*?):(.*)")
-        strat["band"] = strat["band"].astype(str).str.replace("_Difficulty", "", regex=False)
+        strat[["band", "feature"]] = strat["term"].astype(str).str.extract(r"dispersion_band::(.*?):(.*)")
+        strat["band"] = strat["band"].astype(str).str.replace("_Dispersion", "", regex=False)
         strat = strat[strat["feature"].isin(set(schema_terms))].copy()
         if strat.empty: continue
 
@@ -529,7 +602,7 @@ def generate_difficulty_bands_heatmap(out_dir: str) -> None:
         im = ax.imshow(mat, aspect="auto", vmin=-vmax, vmax=vmax, cmap="coolwarm")
 
         ax.set_title(title)
-        ax.set_xlabel("Difficulty Band")
+        ax.set_xlabel("Dispersion Band")
         ax.set_ylabel("Predictor")
         ax.set_xticks(range(len(band_order)))
         ax.set_xticklabels(band_order)
@@ -547,13 +620,13 @@ def generate_difficulty_bands_heatmap(out_dir: str) -> None:
 
         cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
         cbar.set_label("Effect size (β)")
-        fig.text(0.5, -0.05, "*: FDR-significant (or CI excludes 0)   !: practical_flag", ha="center", va="top", fontsize=9)
+        fig.text(0.5, -0.05, "*: BH–FDR significant (p_fdr < 0.05, within model_id); if FDR is unavailable, * indicates CI excludes 0. !: practical_flag (|β*| ≥ 0.03).", ha="center", va="top", fontsize=9)
         save_plot(filename)
 
     for subset, (pivot, strat, ordered_features) in pivots.items():
         if subset not in ['Full', 'NoSource', 'Source']: continue
-        title = f"RQ7 Difficulty Bands: Predictor × Band Effects ({subset})"
-        filename = f"{out_dir}/fig_difficulty_bands_heatmap_{subset}.png"
+        title = f"RQ7 Dispersion Bands: Predictor × Band Effects ({subset})"
+        filename = f"{out_dir}/fig_dispersion_bands_heatmap_{subset}.png"
         plot_heatmap(pivot, strat, ordered_features, title, filename)
         
     if 'Full' in pivots and 'NoSource' in pivots:
@@ -568,8 +641,8 @@ def generate_difficulty_bands_heatmap(out_dir: str) -> None:
         vmax = np.nanmax(np.abs(mat)) if np.isfinite(mat).any() else 1.0
         im = ax.imshow(mat, aspect="auto", vmin=-vmax, vmax=vmax, cmap="PuOr")
 
-        ax.set_title("RQ7 Difficulty Bands: Delta (NoSource - Full)")
-        ax.set_xlabel("Difficulty Band")
+        ax.set_title("RQ7 Dispersion Bands: Delta (NoSource - Full)")
+        ax.set_xlabel("Dispersion Band")
         ax.set_ylabel("Predictor")
         ax.set_xticks(range(len(band_order)))
         ax.set_xticklabels(band_order)
@@ -586,20 +659,21 @@ def generate_difficulty_bands_heatmap(out_dir: str) -> None:
 
         cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
         cbar.set_label("Δ Effect size")
-        save_plot(f"{out_dir}/fig_difficulty_bands_heatmap_Delta.png")
+        save_plot(f"{out_dir}/fig_dispersion_bands_heatmap_Delta.png")
 
-# def generate_difficulty_bands(out_dir):
-#     path = "data/analysis/F/difficulty_coeffs_r.csv"
+# def generate_dispersion_bands(out_dir):
+#     path = "data/analysis/F/dispersion_coeffs_r.csv"
 #     if not os.path.exists(path): return
 #     df = pd.read_csv(path)
-    
+#     if 'subset' in df.columns:
+#         df = df[df['subset'] == 'Full']
 #     # Filter for interaction terms
-#     strat = df[df['term'].str.contains('difficulty_band::', case=False)].copy()
+#     strat = df[df['term'].str.contains('dispersion_band::', case=False)].copy()
 #     if strat.empty: return
     
 #     # Parse Band and exact Feature
-#     strat[['band', 'feature']] = strat['term'].str.extract(r'difficulty_band::(.*?):(.*)')
-#     strat['band'] = strat['band'].str.replace('_Difficulty', '')
+#     strat[['band', 'feature']] = strat['term'].str.extract(r'dispersion_band::(.*?):(.*)')
+#     strat['band'] = strat['band'].str.replace('_Dispersion', '')
     
 #     from src.helpers.data_loader import get_feature_categories
 #     cat_map = get_feature_categories()
@@ -609,7 +683,7 @@ def generate_difficulty_bands_heatmap(out_dir: str) -> None:
 #     if strat.empty: return
     
 #     # For plot size, picking specific feature(s). E.g. averaging over all features or picking content.
-#     # The user asked to show difficulty bands.
+#     # The user asked to show dispersion bands.
 #     # Let's aggregate by Category and Band instead.
 #     strat['category'] = strat['feature'].map(cat_map).fillna('Other').str.capitalize()
     
@@ -626,12 +700,12 @@ def generate_difficulty_bands_heatmap(out_dir: str) -> None:
     
 #     plt.figure(figsize=(10, 6))
 #     sns.barplot(data=strat, x="category", y="effect_size", hue="band", palette="colorblind")
-#     plt.title("Query Difficulty Stability across Metric Categories")
+#     plt.title("Query Dispersion Stability across Metric Categories")
 #     plt.ylabel("Standardized Effect Size (Average)")
 #     plt.xlabel("Category")
-#     plt.legend(title="Difficulty Band", bbox_to_anchor=(1.05, 1), loc='upper left')
+#     plt.legend(title="Dispersion Band", bbox_to_anchor=(1.05, 1), loc='upper left')
 #     plt.axhline(0, color='gray', linestyle='--')
-#     save_plot(f"{out_dir}/fig_difficulty_bands.png")
+#     save_plot(f"{out_dir}/fig_dispersion_bands.png")
 
 def generate_confirmatory_forest(out_dir: str) -> None:
     # Prefer local sandbox CSV if present; otherwise fall back to repo path.
@@ -743,6 +817,7 @@ def generate_engine_heterogeneity(out_dir):
     feat_data = strat.copy()
     feat_data = feat_data[feat_data['subset'].astype(str).str.endswith('_Full', na=False)].copy()
     feat_data['search_engine'] = feat_data['subset'].astype(str).str.replace('Engine_', '', case=False).str.replace('_Full', '', case=False)
+    feat_data['search_engine'] = feat_data['search_engine'].replace(ENGINE_MAP)
     
     # Use schema features for ordering
     from src.helpers.data_loader import get_feature_categories
@@ -781,6 +856,8 @@ def generate_ablation_ndcg(out_dir):
     # Exclude the "Full Model" baseline from bars as it has 0 change
     sub = df[~df['set_name'].astype(str).str.contains('Full', case=False, na=False)].copy()
     if sub.empty: return
+    
+    sub['subset'] = sub['subset'].replace(ENGINE_MAP)
     
     # Remove the '- ' prefix from ablations
     sub['set_name'] = sub['set_name'].astype(str).str.replace(r'^-?\s*', '', regex=True)
@@ -826,6 +903,9 @@ def generate_concentration_violin(out_dir):
     
     if 'domain_entropy_norm' not in ok_df.columns or 'domain_gini' not in ok_df.columns:
         return
+        
+    if 'search_engine' in ok_df.columns:
+        ok_df['search_engine'] = ok_df['search_engine'].replace(ENGINE_MAP)
     
     # Define a consistent color palette for search engines
     avail_engines = [e for e in ENGINE_ORDER if e in ok_df['search_engine'].unique()]
@@ -862,10 +942,10 @@ def generate_concentration_violin(out_dir):
     save_plot(f"{out_dir}/fig_rank_concentration.png")
 
 
-def generate_difficulty_bands_forest_smallmultiples(out_dir: str) -> None:
+def generate_dispersion_bands_forest_smallmultiples(out_dir: str) -> None:
     candidates = [
-        "/mnt/data/difficulty_coeffs_r.csv",
-        "data/analysis/F/difficulty_coeffs_r.csv",
+        "/mnt/data/dispersion_coeffs_r.csv",
+        "data/analysis/F/dispersion_coeffs_r.csv",
     ]
     path = next((p for p in candidates if os.path.exists(p)), None)
     if path is None:
@@ -874,21 +954,18 @@ def generate_difficulty_bands_forest_smallmultiples(out_dir: str) -> None:
     df = pd.read_csv(path)
 
     subsets_available = []
-    if "subset" in df.columns:
-        subsets_available = [str(s) for s in df["subset"].unique() if pd.notna(s)]
-    else:
-        df["subset"] = "Full"
-        subsets_available = ["Full"]
+        
+    subsets_available = [str(s) for s in df["subset"].unique() if pd.notna(s)] if "subset" in df.columns else ["Full"]
         
     for current_subset in subsets_available:
         df_sub = df[df["subset"] == current_subset].copy()
         
-        strat = df_sub[df_sub["term"].astype(str).str.contains("difficulty_band::", case=False, na=False)].copy()
+        strat = df_sub[df_sub["term"].astype(str).str.contains("dispersion_band::", case=False, na=False)].copy()
         if strat.empty:
             continue
 
-        strat[["band", "feature"]] = strat["term"].astype(str).str.extract(r"difficulty_band::(.*?):(.*)")
-        strat["band"] = strat["band"].astype(str).str.replace("_Difficulty", "", regex=False)
+        strat[["band", "feature"]] = strat["term"].astype(str).str.extract(r"dispersion_band::(.*?):(.*)")
+        strat["band"] = strat["band"].astype(str).str.replace("_Dispersion", "", regex=False)
 
         from src.helpers.data_loader import get_feature_categories
         cat_map = get_feature_categories()
@@ -904,7 +981,7 @@ def generate_difficulty_bands_forest_smallmultiples(out_dir: str) -> None:
         strat["band"] = pd.Categorical(strat["band"], categories=band_order, ordered=True)
 
         # Define category panel order (match your RQs narrative)
-        panel_order = ["semantic", "performance", "accessibility", "readability"]
+        panel_order = ["performance", "accessibility", "readability", "semantic"]
         panels = [c for c in panel_order if c in set(strat["category"])]
 
         # Term order by schema within each category
@@ -969,10 +1046,10 @@ def generate_difficulty_bands_forest_smallmultiples(out_dir: str) -> None:
         ax.invert_yaxis()
 
         ax.set_xlabel("Standardized Coefficient (β*)")
-        ax.set_title(f"RQ7 Difficulty Bands: Engine-agnostic Interaction Effects ({current_subset})")
-        ax.legend(title="Difficulty Band", loc="lower right")
+        ax.set_title(f"RQ7 Dispersion Bands: Engine-agnostic Interaction Effects ({current_subset})")
+        ax.legend(title="Dispersion Band", loc="lower right")
 
-        save_plot(f"{out_dir}/fig_difficulty_bands_smallmultiples_{current_subset}.png")
+        save_plot(f"{out_dir}/fig_dispersion_bands_smallmultiples_{current_subset}.png")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -988,9 +1065,9 @@ def main():
     generate_permutation_importance(args.out_dir)
     generate_replication_grid(args.out_dir)
     generate_engine_stratified_forest(args.out_dir)
-    # generate_difficulty_bands(args.out_dir)
-    generate_difficulty_bands_forest_smallmultiples(args.out_dir)
-    generate_difficulty_bands_heatmap(args.out_dir)
+    # generate_dispersion_bands(args.out_dir)
+    generate_dispersion_bands_forest_smallmultiples(args.out_dir)
+    generate_dispersion_bands_heatmap(args.out_dir)
     generate_confirmatory_forest(args.out_dir)
     generate_engine_heterogeneity(args.out_dir)
     generate_ablation_ndcg(args.out_dir)

@@ -58,10 +58,10 @@ results_list_supp <- list()
 
 for (m_name in names(supplementary_models)) {
     cat("Running", m_name, "...\n")
-    needs_standardization <- any(grepl("Performance|Accessibility", m_name))
+    needs_standardization <- any(grepl("Readability|Performance|Accessibility", m_name))
     if (needs_standardization) {
         df_model <- copy(df)
-        cols_to_scale <- c(performance, accessibility)
+        cols_to_scale <- c(readability, performance, accessibility)
         cols_present <- intersect(cols_to_scale, names(df_model))
         if (length(cols_present) > 0) {
             safe_scale <- function(x) {

@@ -109,12 +109,12 @@ run_model_set <- function(model_list, results_container, model_type_prefix) {
         cat("Running", m_name, "...\n")
 
         # Prepare Data based on Model Requirements
-        # Required standardizing for Performance & Accessibility
-        needs_standardization <- any(grepl("Performance|Accessibility", m_name))
+        # Required standardizing for Semantics, Readability, Performance & Accessibility
+        needs_standardization <- any(grepl("Semantics|Readability|Performance|Accessibility", m_name))
 
         if (needs_standardization) {
             df_model <- copy(df)
-            cols_to_scale <- c(semantics, performance, accessibility)
+            cols_to_scale <- c(semantics, readability, performance, accessibility)
             cols_present <- intersect(cols_to_scale, names(df_model))
 
             if (length(cols_present) > 0) {

@@ -17,16 +17,17 @@ def run_confirmatory_models(current_df, subset_name, dataset_meta, top_k_thresho
 
     # RQ2: Semantics
     m_id = f"RQ2_Semantics_FE_{subset_name}"
-    current_semantics, _, _ = check_and_mitigate_collinearity(current_df, BLOCK_SEMANTICS, keep_always=['sim_content'])
+    df_std_sem = standardize_variables(current_df, BLOCK_SEMANTICS)
+    current_semantics, _, _ = check_and_mitigate_collinearity(df_std_sem, BLOCK_SEMANTICS, keep_always=['sim_content'])
     f_fe = f"recip_rank ~ {' + '.join(current_semantics)} + C(search_engine, Treatment(reference='google')) + EntityEffects + 1"
-    res_fe = run_panel_ols(current_df, f_fe, m_id, model_eligibility)
+    res_fe = run_panel_ols(df_std_sem, f_fe, m_id, model_eligibility)
     
     rq2_r2 = 0
     if res_fe:
         rq2_r2 = res_fe.rsquared
         delta_r2 = rq2_r2 - base_r2
         rows = extract_coeffs(res_fe, m_id, "FE-continuous", dataset_meta, FDR_WHITELIST)
-        for r in rows: r.update({'subset': subset_name, 'delta_r2': delta_r2})
+        for r in rows: r.update({'subset': subset_name, 'delta_r2': delta_r2, 'is_standardized': True})
         results.extend(rows)
         model_status[m_id] = "success"
     else:
@@ -34,25 +35,29 @@ def run_confirmatory_models(current_df, subset_name, dataset_meta, top_k_thresho
 
     # RQ3: Readability
     m_id = f"RQ3_Readability_FE_{subset_name}"
+    cols_to_std_read = BLOCK_SEMANTICS + BLOCK_READABILITY
+    df_std_read = standardize_variables(current_df, cols_to_std_read)
+    
     rq3_preds = current_semantics + BLOCK_READABILITY
-    current_rq3_preds, _, _ = check_and_mitigate_collinearity(current_df, rq3_preds, keep_always=current_semantics)
+    current_rq3_preds, _, _ = check_and_mitigate_collinearity(df_std_read, rq3_preds, keep_always=current_semantics)
     f_r3 = f"recip_rank ~ {' + '.join(current_rq3_preds)} + C(search_engine, Treatment(reference='google')) + EntityEffects + 1"
-    res_r3 = run_panel_ols(current_df, f_r3, m_id, model_eligibility)
+    res_r3 = run_panel_ols(df_std_read, f_r3, m_id, model_eligibility)
     
     if res_r3:
         delta_r2 = res_r3.rsquared - rq2_r2
         rows = extract_coeffs(res_r3, m_id, "FE-continuous", dataset_meta, FDR_WHITELIST)
-        for r in rows: r.update({'subset': subset_name, 'delta_r2': delta_r2, 'variant': 'raw'})
+        for r in rows: r.update({'subset': subset_name, 'delta_r2': delta_r2, 'variant': 'raw', 'is_standardized': True})
         results.extend(rows)
         model_status[m_id] = "success"
         
         # Winsorized
         df_wins = apply_winsorization(current_df, BLOCK_READABILITY)
+        df_wins_std = standardize_variables(df_wins, cols_to_std_read)
         m_id_wins = f"RQ3_Readability_FE_Winsorized_{subset_name}"
-        res_r3_wins = run_panel_ols(df_wins, f_r3, m_id_wins, [])
+        res_r3_wins = run_panel_ols(df_wins_std, f_r3, m_id_wins, [])
         if res_r3_wins:
             rows_w = extract_coeffs(res_r3_wins, m_id_wins, "FE-continuous", dataset_meta, FDR_WHITELIST)
-            for r in rows_w: r.update({'subset': subset_name, 'variant': 'winsorized'})
+            for r in rows_w: r.update({'subset': subset_name, 'variant': 'winsorized', 'is_standardized': True})
             results.extend(rows_w)
 
         # Missing data augmented
@@ -68,10 +73,11 @@ def run_confirmatory_models(current_df, subset_name, dataset_meta, top_k_thresho
                     aug_predictors.append(is_missing_col)
             f_aug = f"recip_rank ~ {' + '.join(current_rq3_preds + aug_predictors)} + C(search_engine, Treatment(reference='google')) + EntityEffects + 1"
             m_id_aug = f"RQ3_Readability_FE_IndicatorAugmented_{subset_name}"
-            res_aug = run_panel_ols(df_aug, f_aug, m_id_aug, [])
+            df_aug_std = standardize_variables(df_aug, cols_to_std_read)
+            res_aug = run_panel_ols(df_aug_std, f_aug, m_id_aug, [])
             if res_aug:
                 rows_a = extract_coeffs(res_aug, m_id_aug, "FE-continuous", dataset_meta, FDR_WHITELIST)
-                for r in rows_a: r.update({'subset': subset_name, 'missing_strategy': 'indicator_augmented'})
+                for r in rows_a: r.update({'subset': subset_name, 'missing_strategy': 'indicator_augmented', 'is_standardized': True})
                 results.extend(rows_a)
     else:
         model_status[m_id] = "failed"

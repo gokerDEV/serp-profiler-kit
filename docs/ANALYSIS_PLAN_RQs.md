@@ -9,7 +9,7 @@
 | **RQ1**     | **Analysis C** | `src/analysis/C/rq1_concentration.py`   | Rank concentration (Gini/Entropy) & semantic dispersion. |
 | **RQ2–RQ5** | **Analysis D** | `src/analysis/D/confirmatory_models.py` | Main regression models (Top-k, FE).                      |
 | **RQ6**     | **Analysis E** | `src/analysis/E/engine_heterogeneity.py`| Engine-specific signal analysis.                         |
-| **RQ7**     | **Analysis F** | `src/analysis/F/query_difficulty.py`    | Query difficulty bands & heterogeneity.                  |
+| **RQ7**     | **Analysis F** | `src/analysis/F/query_difficulty.py`    | Content similarity dispersion bands & heterogeneity.     |
 | **RQ8**     | **Analysis G** | `src/analysis/G/robustness.py`          | Robustness checks & sensitivity.                         |
 | **RQ9**     | **Analysis H** | `src/analysis/H/ablation.py`            | Composite models & ablation.                             |
 
@@ -329,38 +329,40 @@ Are signal–visibility associations **engine-specific**, and do they replicate 
 * Interaction table + engine-stratified coefficient table.
 * Replication grid: sign agreement, practical_flag stability, CI overlap.
 
+
 ---
 
-## RQ7 (Formerly RQ6)
+## RQ7
 
 ### Question
 
-Are associations consistent across **query difficulty bands** (e.g., low vs high semantic separability) and top-k strata?
+Does within-query content-similarity dispersion (sim_content dispersion) systematically moderate the strength of signal–ranking associations?
 
-### Hypothesis
+### Hypotheses
 
-* **H1:** Signal strengths vary by query difficulty band and/or top-k stratum.
-* **H0:** No systematic heterogeneity across difficulty bands.
+* **H1:** Signal–ranking associations vary across within-query dispersion bands (Low/Medium/High Dispersion).
+* **H0:** No systematic heterogeneity across dispersion bands.
 
 ### Primary model/test
 
-* Pre-registered query difficulty bands (constructed from within-query semantic dispersion/mean).
-* Models: visibility ~ core predictors + (core predictors × difficulty_band) with query FE where applicable.
-* Complementary stratified fits by band and by top-k.
+* Dispersion bands are constructed from within-query dispersion of `sim_content` (e.g., per-query standard deviation; quantile-based binning).
+* Models: ranking outcome ~ core predictors + (core predictors × dispersion_band), with query fixed effects where applicable.
+* Complementary stratified fits by dispersion band (reported as band-specific coefficient profiles).
 
 ### Robustness checks
 
-* Alternative band definitions (quantile-based; documented).
-* Engine-stratified.
+* Alternative binning specifications (e.g., different quantile cutpoints; documented).
+* (Optional) Engine-stratified estimation to assess whether dispersion-moderation patterns are consistent across engines.
 
 ### Key outputs
 
-* Band-by-band coefficient summaries + heterogeneity tests.
-* Consistency criterion (for “consistent” claims): sign agreement + practical magnitude not engine-dominated across ≥2 outcome families.
+* Band-by-band standardized coefficient summaries and interaction/heterogeneity tests.
+* Consistency criterion for “consistent” claims: sign agreement and practically meaningful magnitude across dispersion bands (and, if reported, across engines).
 
 ---
 
-## RQ8 (Formerly RQ7)
+
+## RQ8 
 
 ### Question
 
@@ -388,12 +390,13 @@ Robustness umbrella over RQ2–RQ7 primary models:
 
 ### Key outputs
 
-* Robustness table: delta estimates, direction match, inference match, practical_flag stability.
-* One main robustness summary table included in the paper.
+* Two robustness summary tables included in the paper:
+  * **Table RQ8-A: Robustness coefficient comparison**. Shows Baseline FE (cluster-robust SE) results compared against Winsorized and Two-way clustered variants, including `Sign Match` and `Pract. Match` stability.
+  * **Table RQ8-B: Sub-dataset Sensitivity**. Reports Baseline vs NoSourceDomain comparisons ensuring stability.
 
 ---
 
-## RQ9 (Formerly RQ8)
+## RQ9
 
 ### Question
 
