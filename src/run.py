@@ -130,6 +130,12 @@ SCRIPTS = [
     ]),
     ("Generator B: Figures (Plots)", "src/generators/B/figures.py", [
         "--out-dir", "data/reports/figures"
+    ]),
+    ("Generator Thesis: LaTeX Tables (RQ9-RQ13)", "src/generators/thesis_table.py", [
+        "--output_dir", "data/reports/thesis/tables"
+    ]),
+    ("Generator Thesis: Figures (RQ9-RQ13)", "src/generators/thesis_plot.py", [
+        "--output_dir", "data/reports/thesis/figures"
     ])
 ]
 
