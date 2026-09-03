@@ -85,6 +85,7 @@ FILENAME_MAP = {
     "fig_rq9_trends.png": "fig_rq9_trends.png",
     "fig_rq11_feature_importance.png": "fig_rq11_feature_importance.png",
     "fig_rq12_heterogeneity_coeffs.png": "fig_rq12_heterogeneity_coeffs.png",
+    "fig_rq12_heterogeneity_coeffs_nosource.png": "fig_rq12_heterogeneity_coeffs_nosource.png",
     "fig_rq12_replication_grid.png": "fig_rq12_replication_grid.png",
     "fig_rq12_engine_stratified_effects.png": "fig_rq12_engine_stratified_effects.png",
     "fig_rq13_dispersion_heatmap.png": "fig_rq13_dispersion_heatmap.png",
@@ -325,47 +326,61 @@ def generate_heterogeneity_all_features(output_dir: Path) -> None:
     if not path.exists():
         return
 
-    df = pd.read_csv(path)
-    stratified = df[df["model_id"].astype(str).str.contains("Stratified", case=False, na=False)].copy()
-    if stratified.empty:
+    df_main = pd.read_csv(path)
+    stratified_main = df_main[df_main["model_id"].astype(str).str.contains("Stratified", case=False, na=False)].copy()
+    if stratified_main.empty:
         return
 
-    stratified = stratified[stratified["subset"].astype(str).str.endswith("_Full", na=False)].copy()
-    stratified["search_engine"] = (
-        stratified["subset"].astype(str).str.replace("Engine_", "", regex=False).str.replace("_Full", "", regex=False)
-    )
-    stratified["search_engine"] = stratified["search_engine"].replace(ENGINE_MAP)
+    for subset_suffix in ["Full", "NoSource"]:
+        stratified = stratified_main[stratified_main["subset"].astype(str).str.endswith(f"_{subset_suffix}", na=False)].copy()
+        if stratified.empty:
+            continue
 
-    category_map = get_feature_categories()
-    ordered_terms = list(category_map.keys())
-    current_terms = [term for term in ordered_terms if term in stratified["term"].values]
-    stratified = stratified[stratified["term"].isin(current_terms)].copy()
+        stratified["search_engine"] = (
+            stratified["subset"].astype(str).str.replace("Engine_", "", regex=False).str.replace(f"_{subset_suffix}", "", regex=False)
+        )
+        stratified["search_engine"] = stratified["search_engine"].replace(ENGINE_MAP)
 
-    available_engines = [engine for engine in ENGINE_ORDER if engine in stratified["search_engine"].unique()]
-    if available_engines:
-        stratified["search_engine"] = pd.Categorical(stratified["search_engine"], categories=available_engines, ordered=True)
-    stratified = stratified.sort_values(["term", "search_engine"])
+        category_map = get_feature_categories()
+        ordered_terms = list(category_map.keys())
+        current_terms = [term for term in ordered_terms if term in stratified["term"].values]
+        stratified = stratified[stratified["term"].isin(current_terms)].copy()
 
-    term_labels = {key: TEXT_MAP["features"].get(key, key) for key in current_terms}
+        available_engines = [engine for engine in ENGINE_ORDER if engine in stratified["search_engine"].unique()]
+        if available_engines:
+            stratified["search_engine"] = pd.Categorical(stratified["search_engine"], categories=available_engines, ordered=True)
+        stratified = stratified.sort_values(["term", "search_engine"])
 
-    plt.figure(figsize=figsize(max(3.5, len(current_terms) * 0.35)))
-    sns.barplot(
-        data=stratified,
-        x="effect_size",
-        y="term",
-        hue="search_engine",
-        palette=ENGINE_COLORS,
-        order=current_terms,
-    )
-    ax = plt.gca()
-    ax.set_yticklabels([term_labels.get(term.get_text(), term.get_text()) for term in ax.get_yticklabels()])
-    draw_category_separators(ax, current_terms, category_map)
-    plt.axvline(0, color="gray", linestyle="--")
-    plt.title(TEXT_MAP["titles"]["heterogeneity_all_features"])
-    plt.xlabel(TEXT_MAP["axes"]["standardized_coefficient"])
-    plt.ylabel(TEXT_MAP["axes"]["feature_plural"])
-    plt.legend(title=TEXT_MAP["legend"]["search_engine"], loc="upper left", bbox_to_anchor=(1, 1))
-    save_plot(output_dir, FILENAME_MAP["fig_rq12_heterogeneity_coeffs.png"])
+        term_labels = {key: TEXT_MAP["features"].get(key, key) for key in current_terms}
+
+        plt.figure(figsize=figsize(max(3.5, len(current_terms) * 0.35)))
+        sns.barplot(
+            data=stratified,
+            x="effect_size",
+            y="term",
+            hue="search_engine",
+            palette=ENGINE_COLORS,
+            order=current_terms,
+        )
+        ax = plt.gca()
+        ax.set_yticklabels([term_labels.get(term.get_text(), term.get_text()) for term in ax.get_yticklabels()])
+        draw_category_separators(ax, current_terms, category_map)
+        plt.axvline(0, color="gray", linestyle="--")
+        
+        title = TEXT_MAP["titles"]["heterogeneity_all_features"]
+        if subset_suffix == "NoSource":
+            title += " (NoSource)"
+            
+        plt.title(title)
+        plt.xlabel(TEXT_MAP["axes"]["standardized_coefficient"])
+        plt.ylabel(TEXT_MAP["axes"]["feature_plural"])
+        plt.legend(title=TEXT_MAP["legend"]["search_engine"], loc="upper left", bbox_to_anchor=(1, 1))
+        
+        filename_key = "fig_rq12_heterogeneity_coeffs.png"
+        if subset_suffix == "NoSource":
+            filename_key = "fig_rq12_heterogeneity_coeffs_nosource.png"
+            
+        save_plot(output_dir, FILENAME_MAP.get(filename_key, filename_key))
 
 
 def generate_replication_grid_full(output_dir: Path) -> None:

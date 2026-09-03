@@ -5,3 +5,7 @@ venv
 .vscode
 .idea
 data
+
+# Python cache
+__pycache__/
+*.py[cod]
