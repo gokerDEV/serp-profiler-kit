@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 import json
+import re
 from pathlib import Path
 import datetime
 import statsmodels.formula.api as smf
@@ -40,12 +41,32 @@ def generate_replication_grid(coeffs, predictors):
     - Practical Significance Stability (Is practical_flag consistent?)
     """
     grid_stats = []
+
+    # Determine the complete set of engines represented in this subset. A term
+    # can be called cross-engine consistent only when it was estimated for every
+    # engine; agreement across an incomplete set must not count as replication.
+    expected_engines = set()
+    for row in coeffs:
+        match = re.match(r"^RQ6_Stratified_(.*?)_R_", str(row.get("model_id", "")))
+        if match:
+            expected_engines.add(match.group(1))
     
     for term in predictors:
         # Get coeffs for this term from engine models
         relevant = [c for c in coeffs if c['term'] == term and str(c.get('model_id', '')).startswith('RQ6_Stratified_')]
         
         if not relevant: continue
+
+        term_engines = set()
+        for row in relevant:
+            match = re.match(r"^RQ6_Stratified_(.*?)_R_", str(row.get("model_id", "")))
+            if match:
+                term_engines.add(match.group(1))
+        complete_engine_coverage = (
+            bool(expected_engines)
+            and term_engines == expected_engines
+            and len(relevant) == len(expected_engines)
+        )
         
         signs = [np.sign(r.get('effect_size', r.get('coef'))) for r in relevant]
         # Use p_fdr if available, fallback to p_raw/pval
@@ -53,15 +74,15 @@ def generate_replication_grid(coeffs, predictors):
         cis = [(r.get('ci_lower_95', r.get('ci_lower')), r.get('ci_upper_95', r.get('ci_upper'))) for r in relevant]
         
         # Agreement: All signs same?
-        all_same_sign = len(set(signs)) == 1
+        all_same_sign = complete_engine_coverage and len(set(signs)) == 1
         
         # Significant Agreement: All FDR-significant AND same sign?
-        sig_agreement = all(pd.notna(p) and p < 0.05 for p in pvals) and all_same_sign
+        sig_agreement = complete_engine_coverage and all(pd.notna(p) and p < 0.05 for p in pvals) and all_same_sign
         
         # CI Overlap
         max_lower = max([c[0] for c in cis])
         min_upper = min([c[1] for c in cis])
-        ci_overlap = max_lower <= min_upper
+        ci_overlap = complete_engine_coverage and max_lower <= min_upper
         
         stats = {
             'term': term,
@@ -111,8 +132,6 @@ def main():
             # Subset values look like: Engine_google_Full, Engine_google_NoSource
             # Let's extract the actual data subset (Full, NoSource, Source)
             # The model_id usually ends with _Full, _NoSource, or _Source
-            import re
-            
             subsets = set()
             for c in stratified_coeffs:
                 m_id = str(c.get('model_id', ''))

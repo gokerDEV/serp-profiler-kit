@@ -215,7 +215,15 @@ format_and_save <- function(results_list, out_filename, evidence_tier_val) {
         skip_absent = TRUE
     )
 
-    all_results[, p_fdr := p.adjust(p_raw, method = "BH"), by = model_id]
+    # Apply BH-FDR only to pre-registered predictor coefficients. Full,
+    # NoSource and Source are separate fitted models and therefore separate
+    # correction families. Search-engine nuisance controls remain unadjusted.
+    all_results[, p_fdr := NA_real_]
+    all_results[
+        term %in% cols_to_check,
+        p_fdr := p.adjust(p_raw, method = "BH"),
+        by = .(model_id, subset)
+    ]
     all_results[, `:=`(
         model_family = "FE-continuous",
         evidence_tier = evidence_tier_val

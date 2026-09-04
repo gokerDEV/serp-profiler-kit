@@ -69,7 +69,7 @@ if (length(cols_to_scale) > 0) {
 
 # Base formula
 # We need to construct formula string correctly
-# recip_rank ~ x1 + ... + i(search_engine, ref='brave') | search_term
+# recip_rank ~ x1 + ... + i(search_engine, ref='google') | search_term
 # Check existence of predictors in df
 valid_predictors <- cols_to_scale
 if (length(valid_predictors) == 0) {
@@ -78,11 +78,12 @@ if (length(valid_predictors) == 0) {
 
 f_base_str <- paste(
     "recip_rank ~", paste(valid_predictors, collapse = " + "),
-    "+ i(search_engine, ref='brave') | search_term"
+    "+ i(search_engine, ref='google') | search_term"
 )
 f_base <- as.formula(f_base_str)
 
 results_list <- list()
+analysis_errors <- character()
 
 run_robustness_model <- function(data, subset_name, suffix) {
     tryCatch(
@@ -107,7 +108,9 @@ run_robustness_model <- function(data, subset_name, suffix) {
             return(res_dt)
         },
         error = function(e) {
-            cat("Error in", suffix, ":", e$message, "\n")
+            error_message <- paste("Error in", suffix, ":", e$message)
+            analysis_errors <<- c(analysis_errors, error_message)
+            cat(error_message, "\n")
             return(NULL)
         }
     )
@@ -176,11 +179,16 @@ if ("domain" %in% names(df)) {
             results_list[["TwoWayCluster"]] <- res_dt
         },
         error = function(e) {
-            cat("Error in TwoWayCluster:", e$message, "\n")
+            error_message <- paste("Error in TwoWayCluster:", e$message)
+            analysis_errors <<- c(analysis_errors, error_message)
+            cat(error_message, "\n")
         }
     )
 }
 
+if (length(analysis_errors) > 0) {
+    stop(paste("Analysis G failed:", paste(analysis_errors, collapse = " | ")))
+}
 
 if (length(results_list) > 0) {
     all_results <- rbindlist(results_list, fill = TRUE)
@@ -192,10 +200,10 @@ if (length(results_list) > 0) {
         skip_absent = TRUE
     )
 
-    # Robustness checks usually don't need FDR, but we can do it.
+    # Robustness-only re-estimates are outside the pre-registered BH-FDR family.
+    # Keep the established output columns, but mark FDR as not applicable.
     if ("p_raw" %in% names(all_results)) {
-        all_results[, p_fdr := p.adjust(p_raw, method = "BH"), by = model_id]
-        all_results[, fdr_significant := (p_fdr < 0.05)]
+        all_results[, `:=`(p_fdr = NA_real_, fdr_significant = FALSE)]
     }
 
     # Metadata
@@ -208,4 +216,6 @@ if (length(results_list) > 0) {
     out_path <- file.path(args$out_dir, "robustness_coeffs_r.csv")
     fwrite(all_results, out_path)
     cat("Saved R results to", out_path, "\n")
+} else {
+    stop("No Analysis G results generated")
 }

@@ -67,8 +67,7 @@ if (length(cols_to_scale) > 0) {
 
 # Dispersion Bands (Assuming 'dispersion_band' column exists, otherwise created in Python step)
 if (!"dispersion_band" %in% names(df)) {
-    cat("Warning: 'dispersion_band' column not found. Skipping analysis.\n")
-    quit(status = 0)
+    stop("Column 'dispersion_band' not found in dataset")
 }
 
 df[, dispersion_band := as.factor(dispersion_band)]
@@ -87,6 +86,7 @@ formula_str <- paste(
 f_diff <- as.formula(formula_str)
 
 results_list <- list()
+analysis_errors <- character()
 
 tryCatch(
     {
@@ -109,7 +109,9 @@ tryCatch(
         results_list[["Dispersion_Interaction_Full"]] <- res_dt
     },
     error = function(e) {
-        cat("Error in Dispersion Model (Full):", e$message, "\n")
+        error_message <- paste("Error in Dispersion Model (Full):", e$message)
+        analysis_errors <<- c(analysis_errors, error_message)
+        cat(error_message, "\n")
     }
 )
 
@@ -136,12 +138,18 @@ if ("is_source_domain" %in% names(df)) {
             results_list[["Dispersion_Interaction_NoSource"]] <- res_dt
         },
         error = function(e) {
-            cat("Error in Dispersion Model (NoSource):", e$message, "\n")
+            error_message <- paste("Error in Dispersion Model (NoSource):", e$message)
+            analysis_errors <<- c(analysis_errors, error_message)
+            cat(error_message, "\n")
         }
     )
 }
 
 # Save
+if (length(analysis_errors) > 0) {
+    stop(paste("Analysis F failed:", paste(analysis_errors, collapse = " | ")))
+}
+
 if (length(results_list) > 0) {
     all_results <- rbindlist(results_list, fill = TRUE)
 
@@ -152,10 +160,21 @@ if (length(results_list) > 0) {
         skip_absent = TRUE
     )
 
-    # FDR (per model ID)
+    # FDR (per fitted model/subset). Search-engine main effects are nuisance
+    # controls and are therefore excluded from the confirmatory family.
     if ("p_raw" %in% names(all_results)) {
-        all_results[, p_fdr := p.adjust(p_raw, method = "BH"), by = model_id]
-        all_results[, fdr_significant := (p_fdr < 0.05)]
+        all_results[, fdr_eligible :=
+            term %in% core_predictors |
+            grepl("^dispersion_band::[^:]+:", term)
+        ]
+        all_results[, `:=`(p_fdr = NA_real_, fdr_significant = FALSE)]
+        all_results[
+            fdr_eligible == TRUE,
+            p_fdr := p.adjust(p_raw, method = "BH"),
+            by = .(model_id, subset)
+        ]
+        all_results[fdr_eligible == TRUE, fdr_significant := (p_fdr < 0.05)]
+        all_results[, fdr_eligible := NULL]
     }
 
     # Metadata
@@ -169,5 +188,5 @@ if (length(results_list) > 0) {
     fwrite(all_results, out_path)
     cat("Saved R results to", out_path, "\n")
 } else {
-    cat("No results generated.\n")
+    stop("No Analysis F results generated")
 }

@@ -72,6 +72,9 @@ def main():
     
     # 0. Assign Bands (Must happen in Python to generate the signal, or just for reporting)
     df_banded, q_stats = assign_dispersion_bands(df, metric='sim_content')
+
+    if q_stats is None:
+        sys.exit("Dispersion bands could not be calculated.")
     
     # Filter out rows where dispersion could not be assigned
     if 'dispersion_band' in df_banded.columns:
@@ -79,8 +82,7 @@ def main():
     
     print(f"Assigned dispersion bands. Valid N={len(df_banded)}", file=sys.stderr)
     
-    if q_stats is not None:
-        q_stats.to_csv(f"{args.out_dir}/dispersion_band_stats.csv", index=False)
+    q_stats.to_csv(f"{args.out_dir}/dispersion_band_stats.csv", index=False)
         
     # Write temp dataset with just raw data + bands.
     temp_dataset = os.path.join(args.out_dir, "dataset_with_bands.parquet")
@@ -89,6 +91,10 @@ def main():
     print("Running RQ7 Query Dispersion Analysis (via R)...", file=sys.stderr)
     
     r_script = os.path.join(project_root, "src/analysis/F/dispersion_band.R")
+    result_path = os.path.join(args.out_dir, "dispersion_coeffs_r.csv")
+    if os.path.exists(result_path):
+        os.remove(result_path)
+
     # Pass the TEMP dataset to R
     success = run_r_wrapper(r_script, ["--dataset", temp_dataset, "--out-dir", args.out_dir])
     
@@ -97,6 +103,9 @@ def main():
     
     if not success:
          sys.exit("R script execution failed.")
+
+    if not os.path.exists(result_path) or os.path.getsize(result_path) == 0:
+         sys.exit("R script completed without producing dispersion_coeffs_r.csv.")
          
     print(f"\nSaved results to {args.out_dir}", file=sys.stderr)  
     

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Dependencies: install.packages(c("fixest", "data.table", "argparse"))
-# This script implements Analysis H (RQ8): Ablation (Inferential)
+# This script implements Analysis H (RQ9): Ablation (Inferential)
 
 suppressPackageStartupMessages({
     library(fixest)
@@ -78,6 +78,7 @@ if (length(cols_to_scale) > 0) {
 }
 
 results_list <- list()
+analysis_errors <- character()
 
 cat("Running Ablation Models...\n")
 
@@ -123,9 +124,15 @@ for (m_name in names(models)) {
             results_list[[m_name]] <- res_dt
         },
         error = function(e) {
-            cat("Error in", m_name, ":", e$message, "\n")
+            error_message <- paste("Error in", m_name, ":", e$message)
+            analysis_errors <<- c(analysis_errors, error_message)
+            cat(error_message, "\n")
         }
     )
+}
+
+if (length(analysis_errors) > 0) {
+    stop(paste("Analysis H failed:", paste(analysis_errors, collapse = " | ")))
 }
 
 # --- Stability Metrics (Coefficient % Change) ---
@@ -186,9 +193,10 @@ if (length(results_list) > 0) {
         skip_absent = TRUE
     )
 
+    # RQ9 inferential-ablation estimates are outside the pre-registered BH-FDR
+    # family. Preserve the established columns and mark FDR as not applicable.
     if ("p_raw" %in% names(all_results)) {
-        all_results[, p_fdr := p.adjust(p_raw, method = "BH"), by = model_id]
-        all_results[, fdr_significant := (p_fdr < 0.05)]
+        all_results[, `:=`(p_fdr = NA_real_, fdr_significant = FALSE)]
     }
 
     # Metadata
@@ -208,4 +216,6 @@ if (length(results_list) > 0) {
         fwrite(stab_res, out_stab)
         cat("Saved Stability results to", out_stab, "\n")
     }
+} else {
+    stop("No Analysis H inferential results generated")
 }

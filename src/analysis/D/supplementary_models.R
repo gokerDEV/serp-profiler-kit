@@ -127,7 +127,15 @@ for (m_name in names(supplementary_models)) {
 if (length(results_list_supp) > 0) {
     all_results <- rbindlist(results_list_supp, fill = TRUE)
     setnames(all_results, old = c("coef", "ci_lower", "ci_upper", "pval"), new = c("effect_size", "ci_lower_95", "ci_upper_95", "p_raw"), skip_absent = TRUE)
-    all_results[, p_fdr := p.adjust(p_raw, method = "BH"), by = model_id]
+    # Keep the existing supplementary model structure, but exclude nuisance
+    # search-engine coefficients from the BH-FDR family.
+    fdr_terms <- c(readability, performance, accessibility)
+    all_results[, p_fdr := NA_real_]
+    all_results[
+        term %in% fdr_terms,
+        p_fdr := p.adjust(p_raw, method = "BH"),
+        by = .(model_id, subset)
+    ]
     all_results[, `:=`(model_family = "FE-continuous", evidence_tier = "supplementary")]
     all_results[, practical_flag := abs(effect_size) >= 0.03]
     out_path <- file.path(args$out_dir, "supplementary_coeffs_r.csv")

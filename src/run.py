@@ -116,13 +116,16 @@ SCRIPTS = [
     ("Analysis E: RQ5 Engine Heterogeneity (R)", "src/analysis/E/engine_heterogeneity.py", lambda: (
         ["--dataset", get_latest_dataset(), "--out-dir", "data/analysis/E"] if get_latest_dataset() else None
     )),
-    ("Analysis F: RQ6 Query Difficulty (R)", "src/analysis/F/query_difficulty.py", lambda: (
+    # ("Analysis F: RQ6 Query Difficulty (R)", "src/analysis/F/query_difficulty.py", lambda: (
+    #     ["--dataset", get_latest_dataset(), "--out-dir", "data/analysis/F"] if get_latest_dataset() else None
+    # )),
+    ("Analysis F: RQ7 Query Dispersion (R)", "src/analysis/F/dispersion_band.py", lambda: (
         ["--dataset", get_latest_dataset(), "--out-dir", "data/analysis/F"] if get_latest_dataset() else None
     )),
-    ("Analysis G: RQ7 Robustness (R)", "src/analysis/G/robustness.py", lambda: (
+    ("Analysis G: RQ8 Robustness (R)", "src/analysis/G/robustness.py", lambda: (
         ["--dataset", get_latest_dataset(), "--out-dir", "data/analysis/G"] if get_latest_dataset() else None
     )),
-    ("Analysis H: RQ8 Ablation (R/Python)", "src/analysis/H/ablation.py", lambda: (
+    ("Analysis H: RQ9 Ablation (R/Python)", "src/analysis/H/ablation.py", lambda: (
         ["--dataset", get_latest_dataset(), "--out-dir", "data/analysis/H"] if get_latest_dataset() else None
     )),
     ("Generator A: LaTeX Tables", "src/generators/A/tables.py", [

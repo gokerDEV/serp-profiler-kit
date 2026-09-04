@@ -220,6 +220,19 @@ def main():
     args = parser.parse_args()
     
     os.makedirs(args.out_dir, exist_ok=True)
+
+    output_names = [
+        "ablation_inferential_r.csv",
+        "ablation_stability_r.csv",
+        "ablation_predictive.csv",
+        "rank_stability_importance.csv",
+        "ablation_comparison.csv",
+        "ablation_status.json",
+    ]
+    for output_name in output_names:
+        output_path = os.path.join(args.out_dir, output_name)
+        if os.path.exists(output_path):
+            os.remove(output_path)
     
     # Reuse updated validate_and_prep_data
     df, meta = validate_and_prep_data(args.dataset, args.dataset_variant, args.code_version)
@@ -238,9 +251,23 @@ def main():
         status_report['models']['Inferential_R'] = "success"
     else:
         status_report['models']['Inferential_R'] = "failed"
-        print("Warning: R inferential steps failed.", file=sys.stderr)
+        sys.exit("R inferential steps failed.")
 
     # Note: R script saves to ablation_inferential_r.csv directly
+
+    required_r_outputs = [
+        os.path.join(args.out_dir, "ablation_inferential_r.csv"),
+        os.path.join(args.out_dir, "ablation_stability_r.csv"),
+    ]
+    missing_r_outputs = [
+        path for path in required_r_outputs
+        if not os.path.exists(path) or os.path.getsize(path) == 0
+    ]
+    if missing_r_outputs:
+        sys.exit(
+            "R script completed without required output(s): "
+            + ", ".join(os.path.basename(path) for path in missing_r_outputs)
+        )
 
     
     # --- Part 2: Corroborative LTR Ablation (Engine Stratified) ---
@@ -343,6 +370,9 @@ def main():
                 'missing_policy': 'fillna_zero'
             })
         
+    if not predictive_results:
+        sys.exit("No predictive ablation results generated.")
+
     pd.DataFrame(predictive_results).to_csv(f"{args.out_dir}/ablation_predictive.csv", index=False)
     pd.DataFrame(importance_results).to_csv(f"{args.out_dir}/rank_stability_importance.csv", index=False)
     

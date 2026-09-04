@@ -194,19 +194,31 @@ def main():
         result_df['subset'] = subset_name
         all_results.append(result_df)
         
-        engines = result_df['search_engine'].unique()
+        # Pairwise comparisons must follow the same minimum-observation rule as
+        # the engine summaries. Groups with fewer than five results are retained
+        # for QA reporting but excluded from inferential/descriptive comparisons.
+        effect_input_df = result_df[result_df['status'] == 'ok'].copy()
+        engines = effect_input_df['search_engine'].unique()
         effect_sizes = []
         import itertools
         for e1, e2 in itertools.combinations(engines, 2):
-            g1 = result_df[result_df['search_engine'] == e1]
-            g2 = result_df[result_df['search_engine'] == e2]
+            g1 = effect_input_df[effect_input_df['search_engine'] == e1]
+            g2 = effect_input_df[effect_input_df['search_engine'] == e2]
             
             metrics_to_test = ['domain_gini'] + [f"{f}_mean" for f in analysis_feats]
             for metric in metrics_to_test:
-                if metric not in result_df.columns: continue
-                m1, m2 = g1[metric].dropna().mean(), g2[metric].dropna().mean()
-                s1, s2 = g1[metric].std(), g2[metric].std()
-                n1, n2 = len(g1), len(g2)
+                if metric not in effect_input_df.columns:
+                    continue
+
+                valid1 = g1[metric].dropna()
+                valid2 = g2[metric].dropna()
+                n1, n2 = len(valid1), len(valid2)
+
+                if n1 < 2 or n2 < 2:
+                    continue
+
+                m1, m2 = valid1.mean(), valid2.mean()
+                s1, s2 = valid1.std(), valid2.std()
                 
                 pooled_std = np.sqrt(((n1 - 1)*s1**2 + (n2 - 1)*s2**2) / (n1 + n2 - 2)) if n1+n2>2 else 0
                 d = (m1 - m2) / pooled_std if pooled_std > 0 else 0.0

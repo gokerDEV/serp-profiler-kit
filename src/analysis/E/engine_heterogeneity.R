@@ -93,6 +93,7 @@ formula_str <- paste(
 f_interaction <- as.formula(formula_str)
 
 results_list <- list()
+analysis_errors <- character()
 
 tryCatch(
     {
@@ -149,7 +150,9 @@ tryCatch(
         }
     },
     error = function(e) {
-        cat("Error in Interaction Model:", e$message, "\n")
+        error_message <- paste("Error in Interaction Model:", e$message)
+        analysis_errors <<- c(analysis_errors, error_message)
+        cat(error_message, "\n")
     }
 )
 
@@ -226,13 +229,19 @@ for (eng in engines) {
             }
         },
         error = function(e) {
-            cat("Error in Stratified Model", eng, ":", e$message, "\n")
+            error_message <- paste("Error in Stratified Model", eng, ":", e$message)
+            analysis_errors <<- c(analysis_errors, error_message)
+            cat(error_message, "\n")
         }
     )
 }
 
 # Bind and Save
 # Bind and Save
+if (length(analysis_errors) > 0) {
+    stop(paste("Analysis E failed:", paste(analysis_errors, collapse = " | ")))
+}
+
 if (length(results_list) > 0) {
     all_results <- rbindlist(results_list, fill = TRUE)
 
@@ -243,10 +252,21 @@ if (length(results_list) > 0) {
         skip_absent = TRUE
     )
 
-    # FDR (per model ID)
+    # FDR (per fitted model/subset). Engine main effects are nuisance controls;
+    # core predictors and predictor-by-engine interactions remain eligible.
     if ("p_raw" %in% names(all_results)) {
-        all_results[, p_fdr := p.adjust(p_raw, method = "BH"), by = model_id]
-        all_results[, fdr_significant := (p_fdr < 0.05)]
+        all_results[, fdr_eligible :=
+            term %in% core_predictors |
+            grepl("^search_engine::[^:]+:", term)
+        ]
+        all_results[, `:=`(p_fdr = NA_real_, fdr_significant = FALSE)]
+        all_results[
+            fdr_eligible == TRUE,
+            p_fdr := p.adjust(p_raw, method = "BH"),
+            by = .(model_id, subset)
+        ]
+        all_results[fdr_eligible == TRUE, fdr_significant := (p_fdr < 0.05)]
+        all_results[, fdr_eligible := NULL]
     }
 
     # Metadata
@@ -260,5 +280,5 @@ if (length(results_list) > 0) {
     fwrite(all_results, out_path)
     cat("Saved R results to", out_path, "\n")
 } else {
-    cat("No results generated.\n")
+    stop("No Analysis E results generated")
 }

@@ -24,8 +24,11 @@ def calculate_concentration_metrics(ranks: pd.Series, units: pd.Series, prefix: 
     # Create a DataFrame for processing
     df = pd.DataFrame({'rank': ranks, 'unit': units})
     
-    # Filter valid ranks > 0
-    df = df[df['rank'] > 0].sort_values('rank')
+    # Use the observed SERP position directly. After acceptance/outlier filtering,
+    # rank sequences may contain gaps (for example 1, 4, 9, 12). Compressing such
+    # sequences back to 1..n would change their original visibility weights.
+    df['rank'] = pd.to_numeric(df['rank'], errors='coerce')
+    df = df[df['rank'].notna() & (df['rank'] > 0)].sort_values('rank')
     
     n_results = len(df)
     
@@ -45,13 +48,9 @@ def calculate_concentration_metrics(ranks: pd.Series, units: pd.Series, prefix: 
             'status': "insufficient_data"
         }
     
-    # B.1.1 Individual Visibility (Continuous Re-ranking 1..n)
-    ranks_continuous = np.arange(1, n_results + 1)
-    # v_r = 1/r
-    item_visibility = 1.0 / ranks_continuous
-    
-    # Assign visibility back to items
-    df['visibility'] = item_visibility
+    # B.1.1 Individual visibility based on the original SERP rank:
+    # v_r = 1 / r. Do not re-rank the retained observations within the group.
+    df['visibility'] = 1.0 / df['rank'].astype(float)
     
     # B.1.2 Unit Aggregation
     unit_visibility = df.groupby('unit')['visibility'].sum()
